@@ -2,16 +2,12 @@
 .config/README
 Changes
 config.h
-config.sh
-config_h.SH
-Configure
+lib/IPC/ShareLite.pm
 Makefile.PL
 MANIFEST
 README
 sharelite.c
 sharelite.h
-ShareLite.pm
 ShareLite.xs
 t/sharelite.t
-test.pl
 typemap

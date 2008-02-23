@@ -329,7 +329,7 @@ int read_share(Share *share, char **data) {
   node   = share->head;
   left = length = node->shmaddr->length;
 
-  if ((pos = *data = (char *) malloc( length )) == NULL)
+  if ((pos = *data = (char *) Perl_safesysmalloc( length )) == NULL)
     return -1;
 
   while(left) {

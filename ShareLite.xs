@@ -335,7 +335,6 @@ read_share(share)
     char*    data; 
     int      length;
   CODE:
-    share  = (Share *)SvIV(ST(0));
     length = read_share(share, &data);
     ST(0) = sv_newmortal();
     if (length >= 0) {

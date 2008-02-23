@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -11,6 +12,10 @@
 #ifndef errno 
 extern int errno;
 #endif
+
+void *Perl_malloc();
+
+void *Perl_malloc();
 
 #ifndef HAS_UNION_SEMUN
 union semun {
@@ -329,7 +334,7 @@ int read_share(Share *share, char **data) {
   node   = share->head;
   left = length = node->shmaddr->length;
 
-  if ((pos = *data = (char *) Perl_safesysmalloc( length )) == NULL)
+  if ((pos = *data = (char *) Perl_malloc( length )) == NULL)
     return -1;
 
   while(left) {

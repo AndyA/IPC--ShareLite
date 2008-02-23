@@ -1,14 +1,10 @@
 TYPEMAP
-Share*		SHARE
+Share*         T_PTROBJ
 key_t		KEY
 
 INPUT
-SHARE
-		$var = (Share *)SvIV($arg);
 KEY	
 		$var = (key_t) SvIV($arg);	
 
 OUTPUT
-SHARE
-		sv_setiv($arg, (I32) $var);
 	

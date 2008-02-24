@@ -7,8 +7,8 @@ perls=~/Works/Perl/versions/*/bin/perl
 for perl in $perls
 do
     echo === Testing with $perl
+    pv=`$perl -v | perl -ne 'if (/(\d+\.\d+(?:[._]\d+)?)/) { print $1; last }'`
     [ -f Makefile ] && make distclean
-    pv=`$perl -v | perl -ne 'print $1 if /(\d+(?:\.\d+){2})/'`
 
     if {
         $perl Makefile.PL && make && make test

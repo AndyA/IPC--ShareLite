@@ -6,7 +6,7 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <errno.h>
-#include "sharelite.h"
+#include "sharestuff.h"
 
 #ifndef errno
 extern int errno;

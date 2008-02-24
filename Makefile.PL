@@ -23,7 +23,7 @@ WriteMakefile(
     LIBS          => [''],
     DEFINE        => '',
     INC           => '',
-    OBJECT        => 'sharelite.o ShareLite.o',
+    OBJECT        => 'sharestuff.o ShareLite.o',
     dist          => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'IPC-ShareLite-*' },
 );

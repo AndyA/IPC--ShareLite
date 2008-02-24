@@ -3,8 +3,8 @@ lib/IPC/ShareLite.pm
 Makefile.PL
 MANIFEST
 README
-sharelite.c
-sharelite.h
 ShareLite.xs
+sharestuff.c
+sharestuff.h
 t/sharelite.t
 typemap

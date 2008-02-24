@@ -466,7 +466,7 @@ The module has been tested under Solaris, FreeBSD, and Linux.
 Testing on other platforms is needed.  
 
 If you encounter a compilation error due to the definition
-of the semun union, edit the top of sharelite.c and undefine
+of the semun union, edit the top of sharestuff.c and undefine
 the semun definition.  And then please tell me about it.
 
 I've heard rumors that a SysV IPC interface has been 

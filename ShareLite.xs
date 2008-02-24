@@ -10,7 +10,7 @@ extern "C" {
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <sys/ipc.h>
-#include "sharelite.h"
+#include "sharestuff.h"
 /*
  * Some perl version compatibility stuff.
  * Taken from HTML::Parser

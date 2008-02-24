@@ -1,5 +1,12 @@
 Revision history for Perl extension IPC::ShareLite.
 
+0.10 2008-02-24
+    - Use Perl's malloc wrappers where appropriate
+    - moved test into t/sharelite.t
+    - made test use Test::More
+    - removed Configure mechanism
+    - assorted minor tidying
+
 0.09 Wed Dec  4 13:51:05 PST 2002
         - fixed bug in size() thanks to Craig Manley <c.manley@skybound.nl>
 

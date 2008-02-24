@@ -75,7 +75,8 @@ sub _initialize {
     my $args = shift;
 
     for ( qw( create exclusive destroy ) ) {
-        $args->{$_} = 0 if lc $args->{$_} eq 'no';
+        $args->{$_} = 0
+          if defined $args->{$_} and lc $args->{$_} eq 'no';
     }
 
     $self->{key} = $args->{key} || $args->{glue} || IPC_PRIVATE;

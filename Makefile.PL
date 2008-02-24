@@ -19,7 +19,6 @@ WriteMakefile(
     DEFINE        => '',
     INC           => '',
     OBJECT        => 'sharelite.o ShareLite.o',
-    # CCFLAGS       => join( ' ', '-Wall', $Config{ccflags} ),
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES    => 'IPC-ShareLite-*' },
 );

@@ -51,185 +51,11 @@ Exporter::export_ok_tags( 'all', 'lock', 'flock' );
 
 $VERSION = '0.10';
 
-sub new {
-    my $class = shift;
-    my $self  = {};
-
-    $class = ref $class || $class;
-    bless $self, $class;
-
-    my $args = $class->_rearrange_args(
-        [
-            qw( key create destroy exclusive mode
-              flags size glue )
-        ],
-        \@_
-    );
-
-    $self->_initialize( $args ) or return undef;
-
-    return $self;
-}
-
-sub _initialize {
-    my $self = shift;
-    my $args = shift;
-
-    for ( qw( create exclusive destroy ) ) {
-        $args->{$_} = 0
-          if defined $args->{$_} and lc $args->{$_} eq 'no';
-    }
-
-    $self->{key} = $args->{key} || $args->{glue} || IPC_PRIVATE;
-    $self->{key} = unpack( 'i', pack( 'A4', $self->{key} ) )
-      unless ( $self->{key} =~ /^\d+$/ );
-
-    $self->{create} = ( $args->{create} ? IPC_CREAT : 0 );
-    $self->{exclusive} = (
-        $args->{exclusive}
-        ? IPC_EXCL | IPC_CREAT
-        : 0
-    );
-    $self->{'destroy'} = ( $args->{'destroy'} ? 1 : 0 );
-    $self->{flags} = $args->{flags} || 0;
-    $self->{mode}  = $args->{mode}  || 0666 unless $args->{flags};
-    $self->{size}  = $args->{size}  || 0;
-
-    $self->{flags}
-      = $self->{flags} | $self->{exclusive} | $self->{create}
-      | $self->{mode};
-
-    $self->{share}
-      = new_share( $self->{key}, $self->{size}, $self->{flags} )
-      or return undef;
-
-    return 1;
-}
-
-sub _rearrange_args {
-    my ( $self, $names, $params ) = @_;
-    my ( %hash, %names );
-
-    return \%hash unless ( @$params );
-
-    unless ( $params->[0] =~ /^-/ ) {
-        croak "unexpected number of parameters"
-          unless ( @$names == @$params );
-        $hash{@$names} = @$params;
-        return \%hash;
-    }
-
-    %names = map { $_ => 1 } @$names;
-
-    while ( @$params ) {
-        my $param = lc substr( shift @$params, 1 );
-        exists $names{$param} or croak "unexpected parameter '-$param'";
-        $hash{$param} = shift @$params;
-    }
-
-    return \%hash;
-}
-
-sub store {
-    my $self = shift;
-
-    if ( write_share( $self->{share}, $_[0], length $_[0] ) < 0 ) {
-        croak "IPC::ShareLite store() error: $!";
-    }
-    return 1;
-}
-
-sub fetch {
-    my $self = shift;
-
-    my $str = read_share( $self->{share} );
-    defined $str or croak "IPC::ShareLite fetch() error: $!";
-    return $str;
-}
-
-sub lock {
-    my $self = shift;
-
-    my $response = sharelite_lock( $self->{share}, shift() );
-    return undef if ( $response == -1 );
-    return 0 if ( $response == 1 );    # operation failed due to LOCK_NB
-    return 1;
-}
-
-sub unlock {
-    my $self = shift;
-
-    return undef if ( sharelite_unlock( $self->{share} ) < 0 );
-    return 1;
-}
-
-# DEPRECATED -- Use lock() and unlock() instead.
-sub shlock   { shift()->lock( @_ ) }
-sub shunlock { shift()->unlock( @_ ) }
-
-sub version { sharelite_version( shift()->{share} ) }
-
-sub key       { shift()->{key} }
-sub create    { shift()->{create} }
-sub exclusive { shift()->{exclusive} }
-sub flags     { shift()->{flags} }
-sub mode      { shift()->{mode} }
-sub size      { shift()->{size} }
-
-sub num_segments {
-    my $self = shift;
-
-    my $count = sharelite_num_segments( $self->{share} );
-    return undef if $count < 0;
-    return $count;
-}
-
-sub destroy {
-    my $self = shift;
-
-    return ( @_ ? $self->{'destroy'} = shift : $self->{'destroy'} );
-}
-
-sub DESTROY {
-    my $self = shift;
-
-    destroy_share( $self->{share}, $self->{'destroy'} )
-      if $self->{share};
-}
-
-sub AUTOLOAD {
-    # This AUTOLOAD is used to 'autoload' constants from the constant()
-    # XS function.  If a constant is not found then control is passed
-    # to the AUTOLOAD in AutoLoader.
-
-    my $constname;
-    ( $constname = $AUTOLOAD ) =~ s/.*:://;
-    my $val = constant( $constname, @_ ? $_[0] : 0 );
-    if ( $! != 0 ) {
-        if ( $! =~ /Invalid/ ) {
-            $AutoLoader::AUTOLOAD = $AUTOLOAD;
-            goto &AutoLoader::AUTOLOAD;
-        }
-        else {
-            croak
-              "Your vendor has not defined ShareLite macro $constname";
-        }
-    }
-    eval "sub $AUTOLOAD { $val }";
-    goto &$AUTOLOAD;
-}
-
-bootstrap IPC::ShareLite $VERSION;
-
-1;
-
-__END__
-
 =head1 SYNOPSIS
 
     use IPC::ShareLite;
 
-    my $share = new IPC::ShareLite(
+    my $share = IPC::ShareLite->new(
         -key     => 1971,
         -create  => 'yes',
         -destroy => 'no'
@@ -241,24 +67,24 @@ __END__
 =head1 DESCRIPTION
 
 IPC::ShareLite provides a simple interface to shared memory, allowing
-data to be efficiently communicated between processes.  Your operating
-system must support SysV IPC (shared memory and semaphores) in order to 
+data to be efficiently communicated between processes. Your operating
+system must support SysV IPC (shared memory and semaphores) in order to
 use this module.
 
 IPC::ShareLite provides an abstraction of the shared memory and
 semaphore facilities of SysV IPC, allowing the storage of arbitrarily
 large data; the module automatically acquires and removes shared memory
-segments as needed.  Storage and retrieval of data is atomic, and
-locking functions are provided for higher-level synchronization.
+segments as needed. Storage and retrieval of data is atomic, and locking
+functions are provided for higher-level synchronization.
 
-In many respects, this module is similar to IPC::Shareable.  However,
+In many respects, this module is similar to IPC::Shareable. However,
 IPC::ShareLite does not provide a tied interface, does not 
 (automatically) allow the storage of variables, and is written in C
 for additional speed.
 
 Construct an IPC::ShareLite object by calling its constructor:
 
-    my $share = new IPC::ShareLite(
+    my $share = IPC::ShareLite->new(
         -key     => 1971,
         -create  => 'yes',
         -destroy => 'no'
@@ -299,68 +125,161 @@ Release the lock by calling the unlock() method:
 
 =head1 METHODS
 
-=over 4
-
-=item new($key, $create, $destroy, $exclusive, $mode, $flags, $size)
+=head2 C<< new($key, $create, $destroy, $exclusive, $mode, $flags, $size) >>
 
 This is the constructor for IPC::ShareLite.  It accepts both 
 the positional and named parameter calling styles.
 
-$key is an integer value used to associate data between processes.
+C<$key> is an integer value used to associate data between processes.
 All processes wishing to communicate should use the same $key value.
 $key may also be specified as a four character string, in which case
 it will be converted to an integer value automatically.  If $key
 is undefined, the shared memory will not be accessible from other
 processes.
 
-$create specifies whether the shared memory segment should be
+C<$create> specifies whether the shared memory segment should be
 created if it does not already exist.  Acceptable values are
 1, 'yes', 0, or 'no'.
 
-$destroy indicates whether the shared memory segments and semaphores
+C<$destroy> indicates whether the shared memory segments and semaphores
 should be removed from the system once the object is destroyed.
 Acceptable values are 1, 'yes', 0, or 'no'.
 
-If $exclusive is true, instantiation will fail if the shared memory
-segment already exists.  Acceptable values are 1, 'yes', 0, or 'no'.
+If C<$exclusive> is true, instantiation will fail if the shared memory
+segment already exists. Acceptable values are 1, 'yes', 0, or 'no'.
 
-$mode specifies the permissions for the shared memory and semaphores.
+C<$mode> specifies the permissions for the shared memory and semaphores.
 The default value is 0666.
 
-$flags specifies the exact shared memory and semaphore flags to
-use.  The constants IPC_CREAT, IPC_EXCL, and IPC_PRIVATE are
-available for import.  
+C<$flags> specifies the exact shared memory and semaphore flags to
+use. The constants IPC_CREAT, IPC_EXCL, and IPC_PRIVATE are available
+for import.
 
-$size specifies the shared memory segment size, in bytes.
-The default size is 65,536 bytes, which is fairly portable.  
-Linux, as an example, supports segment sizes of 4 megabytes.
+C<$size> specifies the shared memory segment size, in bytes. The default
+size is 65,536 bytes, which is fairly portable. Linux, as an example,
+supports segment sizes of 4 megabytes.
 
 The constructor returns the undefined value on error.
 
-=item store( $scalar )
+=cut
 
-This method stores $scalar into shared memory.  $scalar may be
+sub new {
+    my $class = shift;
+    my $self = bless {}, ref $class || $class;
+
+    my $args = $class->_rearrange_args(
+        [
+            qw( key create destroy exclusive mode
+              flags size glue )
+        ],
+        \@_
+    );
+
+    $self->_initialize( $args ) or return undef;
+
+    return $self;
+}
+
+sub _initialize {
+    my $self = shift;
+    my $args = shift;
+
+    for ( qw( create exclusive destroy ) ) {
+        $args->{$_} = 0
+          if defined $args->{$_} and lc $args->{$_} eq 'no';
+    }
+
+    # Allow glue as a synonym for key
+    $self->{key} = $args->{key} || $args->{glue} || IPC_PRIVATE;
+
+    # Allow a four character string as the key
+    $self->{key} = unpack( 'i', pack( 'A4', $self->{key} ) )
+      unless ( $self->{key} =~ /^\d+$/ );
+
+    $self->{create} = ( $args->{create} ? IPC_CREAT : 0 );
+
+    $self->{exclusive} = (
+        $args->{exclusive}
+        ? IPC_EXCL | IPC_CREAT
+        : 0
+    );
+
+    $self->{destroy} = ( $args->{destroy} ? 1 : 0 );
+
+    $self->{flags} = $args->{flags} || 0;
+    $self->{mode}  = $args->{mode}  || 0666 unless $args->{flags};
+    $self->{size}  = $args->{size}  || 0;
+
+    $self->{flags}
+      = $self->{flags} | $self->{exclusive} | $self->{create}
+      | $self->{mode};
+
+    $self->{share}
+      = new_share( $self->{key}, $self->{size}, $self->{flags} )
+      or return undef;
+
+    return 1;
+}
+
+sub _rearrange_args {
+    my ( $self, $names, $params ) = @_;
+    my ( %hash, %names );
+
+    return \%hash unless ( @$params );
+
+    unless ( $params->[0] =~ /^-/ ) {
+        croak "unexpected number of parameters"
+          unless ( @$names == @$params );
+        $hash{@$names} = @$params;
+        return \%hash;
+    }
+
+    %names = map { $_ => 1 } @$names;
+
+    while ( @$params ) {
+        my $param = lc substr( shift @$params, 1 );
+        exists $names{$param} or croak "unexpected parameter '-$param'";
+        $hash{$param} = shift @$params;
+    }
+
+    return \%hash;
+}
+
+=head2 C<< store( $scalar ) >>
+
+This method stores C<$scalar> into shared memory.  C<$scalar> may be
 arbitrarily long.  Shared memory segments are acquired and
 released automatically as the data length changes.
 The only limits on the amount of data are the system-wide
 limits on shared memory pages (SHMALL) and segments (SHMMNI)
 as compiled into the kernel. 
 
-Note that unlike IPC::Shareable, this module does not automatically
-allow variables to be stored.  Serializing all data is expensive, and
-is not always necessary.  If you need to store a variable, you should
-employ the Storable module yourself.  For example:
-
-        use Storable qw( freeze thaw );
-        ...
-	$hash = { red => 1, white => 1, blue => 1 };
-        $share->store( freeze( $hash ) );
-        ...
-        $hash = thaw( $share->fetch );
-
 The method raises an exception on error.
 
-=item fetch()
+Note that unlike L<IPC::Shareable>, this module does not automatically
+allow references to be stored. Serializing all data is expensive, and is
+not always necessary. If you need to store a reference, you should employ
+the L<Storable> module yourself. For example:
+
+    use Storable qw( freeze thaw );
+    ...
+	$hash = { red => 1, white => 1, blue => 1 };
+    $share->store( freeze( $hash ) );
+    ...
+    $hash = thaw( $share->fetch );
+
+=cut
+
+sub store {
+    my $self = shift;
+
+    if ( write_share( $self->{share}, $_[0], length $_[0] ) < 0 ) {
+        croak "IPC::ShareLite store() error: $!";
+    }
+    return 1;
+}
+
+=head2 C<< fetch >>
 
 This method returns the data that was previously stored in
 shared memory.  The empty string is returned if no data was
@@ -368,7 +287,17 @@ previously stored.
 
 The method raises an exception on error.
 
-=item lock( $type )
+=cut
+
+sub fetch {
+    my $self = shift;
+
+    my $str = read_share( $self->{share} );
+    defined $str or croak "IPC::ShareLite fetch() error: $!";
+    return $str;
+}
+
+=head2 C<< lock( $type ) >>
 
 Obtains a lock on the shared memory.  $type specifies the type
 of lock to acquire.  If $type is not specified, an exclusive
@@ -415,7 +344,18 @@ for import:
 
 Or, just use the flock constants available in the Fcntl module.
 
-=item unlock()
+=cut
+
+sub lock {
+    my $self = shift;
+
+    my $response = sharelite_lock( $self->{share}, shift() );
+    return undef if ( $response == -1 );
+    return 0 if ( $response == 1 );    # operation failed due to LOCK_NB
+    return 1;
+}
+
+=head2 C<< unlock >>
 
 Releases any locks.  This is actually equivalent to:
 
@@ -423,7 +363,147 @@ Releases any locks.  This is actually equivalent to:
 
 The method returns true on success and undef on error.
 
-=back
+=cut
+
+sub unlock {
+    my $self = shift;
+
+    return undef if ( sharelite_unlock( $self->{share} ) < 0 );
+    return 1;
+}
+
+# DEPRECATED -- Use lock() and unlock() instead.
+sub shlock   { shift->lock( @_ ) }
+sub shunlock { shift->unlock( @_ ) }
+
+=head2 C<< version >>
+
+Each share has a version number that incrementents monotonically for
+each write to the share. When the share is initally created its version
+number will be 1.
+
+    my $num_writes = $share->version;
+
+=cut
+
+sub version { sharelite_version( shift->{share} ) }
+
+=head2 C<< key >>
+
+Get a share's key.
+
+    my $key = $share->key;
+
+=cut
+
+sub key { shift->{key} }
+
+=head2 C<< create >>
+
+Get a share's create flag.
+
+=cut
+
+sub create { shift->{create} }
+
+=head2 C<< exclusive >>
+
+Get a share's exclusive flag.
+
+=cut
+
+sub exclusive { shift->{exclusive} }
+
+=head2 C<< flags >>
+
+Get a share's flag.
+
+=cut
+
+sub flags { shift->{flags} }
+
+=head2 C<< mode >>
+
+Get a share's mode.
+
+=cut
+
+sub mode { shift->{mode} }
+
+=head2 C<< size >>
+
+Get a share's segment size.
+
+=cut
+
+sub size { shift->{size} }
+
+=head2 C<< num_segments >>
+
+Get the number of segments in a share. The memory usage of a share can
+be approximated like this:
+
+    my $usage = $share->size * $share->num_segments;
+
+C<$usage> will be the memory usage rounded up to the next segment
+boundary.
+
+=cut
+
+sub num_segments {
+    my $self = shift;
+
+    my $count = sharelite_num_segments( $self->{share} );
+    return undef if $count < 0;
+    return $count;
+}
+
+=head2 C<< destroy >>
+
+Get or set the share's destroy flag.
+
+=cut
+
+sub destroy {
+    my $self = shift;
+    $self->{destroy} = shift if @_;
+    return $self->{destroy};
+}
+
+sub DESTROY {
+    my $self = shift;
+
+    destroy_share( $self->{share}, $self->{destroy} )
+      if $self->{share};
+}
+
+sub AUTOLOAD {
+    # This AUTOLOAD is used to 'autoload' constants from the constant()
+    # XS function.  If a constant is not found then control is passed
+    # to the AUTOLOAD in AutoLoader.
+
+    my $constname;
+    ( $constname = $AUTOLOAD ) =~ s/.*:://;
+    my $val = constant( $constname, @_ ? $_[0] : 0 );
+    if ( $! != 0 ) {
+        if ( $! =~ /Invalid/ ) {
+            $AutoLoader::AUTOLOAD = $AUTOLOAD;
+            goto &AutoLoader::AUTOLOAD;
+        }
+        else {
+            croak
+              "Your vendor has not defined ShareLite macro $constname";
+        }
+    }
+    eval "sub $AUTOLOAD { $val }";
+    goto &$AUTOLOAD;
+}
+
+bootstrap IPC::ShareLite $VERSION;
+
+1;
+
+__END__
 
 =head1 PERFORMANCE
 

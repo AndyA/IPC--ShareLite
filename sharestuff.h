@@ -64,9 +64,11 @@ typedef struct {
 
 /* prototypes */
 
-int write_share( Share * share, char *data, int length );
 Share *new_share( key_t key, int segment_size, int flags );
+int write_share( Share * share, char *data, int length );
 int read_share( Share * share, char **data );
+int destroy_share( Share * share, int rmid );
 int sharelite_lock( Share * share, int flags );
 int sharelite_unlock( Share * share );
-int destroy_share( Share * share, int rmid );
+int sharelite_num_segments( Share * share );
+unsigned int sharelite_version( Share * share );

@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 9;
+use Test::More tests => 14;
 
 use_ok 'IPC::ShareLite', qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB );
 
@@ -21,14 +21,20 @@ ok my $share = IPC::ShareLite->new(
 
 isa_ok $share, 'IPC::ShareLite';
 
+is $share->version, 1, 'version';
+
 # Store value
 ok $share->store( 'maurice' ), 'store';
+
+is $share->version, 2, 'version inc';
 
 # Retrieve value
 is $share->fetch, 'maurice', 'fetch';
 
 # Fragmented store
 ok $share->store( "X" x 200 ), 'frag store';
+
+is $share->version, 3, 'version inc';
 
 # Check number of segments
 is $share->num_segments, 3, 'num_segments';
@@ -37,6 +43,8 @@ is $share->num_segments, 3, 'num_segments';
 is $share->fetch, ( 'X' x 200 ), 'frag fetch';
 
 $share->store( 0 );
+
+is $share->version, 4, 'version inc';
 
 my $pid = fork;
 defined $pid or die $!;
@@ -60,5 +68,6 @@ else {
     wait;
 }
 
-is $share->fetch, 2000, 'lock';
+is $share->fetch,   2000, 'lock';
+is $share->version, 2004, 'version inc';
 

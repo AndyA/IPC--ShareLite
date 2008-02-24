@@ -7,7 +7,8 @@ use Config;
 use ExtUtils::MakeMaker;
 use File::Temp qw( tempfile );
 
-my @define = ( '$(PERL_MALLOC_DEF)' );
+my @define = ();
+push @define, '$(PERL_MALLOC_DEF)' if $Config{usemallocwrap};
 
 # push @define, '-DHAS_UNION_SEMUN' if try(
 #     <<EOS

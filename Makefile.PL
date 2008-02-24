@@ -1,6 +1,7 @@
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
+use Config;
 
 WriteMakefile(
     ( MM->can( 'signature_target' ) ? ( SIGN => 1 ) : () ),
@@ -18,3 +19,8 @@ WriteMakefile(
     dist          => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'IPC-ShareLite-*' },
 );
+
+# #include <sys/types.h>
+# #include <sys/ipc.h>
+# #include <sys/sem.h>
+# int main () { union semun semun; semun.buf = 0; }

@@ -1,5 +1,3 @@
-.config/instruct
-.config/README
 Changes
 config.h
 lib/IPC/ShareLite.pm

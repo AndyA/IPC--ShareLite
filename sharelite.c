@@ -13,7 +13,13 @@
 extern int errno;
 #endif
 
-void *Perl_malloc(  );
+#if defined(Perl_malloc) && defined(Perl_mfree)
+#define PERL_MALLOC Perl_malloc
+#define PERL_FREE   Perl_mfree
+#else
+#define PERL_MALLOC malloc
+#define PERL_FREE   free
+#endif
 
 #ifdef HAS_UNION_SEMUN
 #define SEMUN union semun
@@ -371,7 +377,7 @@ read_share( Share * share, char **data ) {
     left = length = node->shmaddr->length;
 
     /* Allocate extra byte for a null at the end */
-    if ( ( pos = *data = ( char * ) Perl_malloc( length + 1 ) ) == NULL ) {
+    if ( ( pos = *data = ( char * ) PERL_MALLOC( length + 1 ) ) == NULL ) {
         return -1;
     }
 
@@ -400,7 +406,7 @@ read_share( Share * share, char **data ) {
     return length;
 
   fail:
-    Perl_mfree( *data );
+    PERL_FREE( *data );
     return -1;
 }
 

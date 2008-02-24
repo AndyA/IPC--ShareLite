@@ -8,12 +8,14 @@ for perl in $perls
 do
     echo === Testing with $perl
     [ -f Makefile ] && make distclean
+    pv=`$perl -v | perl -ne 'print $1 if /(\d+(?:\.\d+){2})/'`
+
     if {
         $perl Makefile.PL && make && make test
     } ; then
-        echo PASS | beeb
+        echo "PASS $pv" | beeb
     else
-        echo FAIL | beeb
+        echo "FAIL $pv" | beeb
     fi
 done
 

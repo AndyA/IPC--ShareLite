@@ -6,6 +6,11 @@ use warnings;
 use Config;
 use ExtUtils::MakeMaker;
 
+if ( $^O =~ /^(MS)?Win32$/ ) {
+    warn "IPC::ShareLite doesn't work on Windows.\nStopping.\n";
+    exit 0;    # == NA test result
+}
+
 WriteMakefile(
     ( MM->can( 'signature_target' ) ? ( SIGN => 1 ) : () ),
     NAME          => 'IPC::ShareLite',
@@ -19,6 +24,6 @@ WriteMakefile(
     DEFINE        => '',
     INC           => '',
     OBJECT        => 'sharelite.o ShareLite.o',
-    dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean => { FILES    => 'IPC-ShareLite-*' },
+    dist          => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    clean => { FILES => 'IPC-ShareLite-*' },
 );

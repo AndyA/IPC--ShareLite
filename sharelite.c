@@ -6,6 +6,7 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <errno.h>
+/*#include "config.h"*/
 #include "sharelite.h"
 
 #ifndef errno
@@ -175,7 +176,7 @@ _add_segment( Share * share ) {
     Node *node;
     int flags;
 
-    if ( ( node = ( Node * ) PERL_MALLOC( sizeof( Node ) ) ) == NULL )
+    if ( ( node = ( Node * ) malloc( sizeof( Node ) ) ) == NULL )
         return NULL;
     node->next = NULL;
 
@@ -230,7 +231,7 @@ _detach_segments( Node * node ) {
         next_node = node->next;
         if ( shmdt( ( char * ) node->shmaddr ) < 0 )
             return -1;
-        PERL_FREE( node );
+        free( node );
         node = next_node;
     }
     return 0;
@@ -347,6 +348,7 @@ write_share( Share * share, char *data, int length ) {
                 return -1;
         }
     }
+
     return 0;
 }
 
@@ -434,7 +436,7 @@ new_share( key_t key, int segment_size, int flags ) {
         segment_size = SHM_SEGMENT_SIZE;
     }
 
-    if ( ( node = ( Node * ) PERL_MALLOC( sizeof( Node ) ) ) == NULL )
+    if ( ( node = ( Node * ) malloc( sizeof( Node ) ) ) == NULL )
         return NULL;
     if ( ( node->shmid = shmget( key, segment_size, flags ) ) < 0 )
         return NULL;
@@ -444,7 +446,7 @@ new_share( key_t key, int segment_size, int flags ) {
         return NULL;
     node->next = NULL;
 
-    if ( ( share = ( Share * ) PERL_MALLOC( sizeof( Share ) ) ) == NULL )
+    if ( ( share = ( Share * ) malloc( sizeof( Share ) ) ) == NULL )
         return NULL;
     share->key = key;
     share->next_key = key + 1;
@@ -521,7 +523,7 @@ destroy_share( Share * share, int rmid ) {
             return -1;
     }
 
-    PERL_FREE( share );
+    free( share );
 
     return 0;
 }

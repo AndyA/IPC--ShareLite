@@ -1,6 +1,7 @@
 package IPC::ShareLite;
 
 use strict;
+use warnings;
 use Carp;
 
 =head1 NAME
@@ -67,7 +68,7 @@ sub new {
 
     $self->_initialize( $args ) or return undef;
 
-    $self;
+    return $self;
 }
 
 sub _initialize {
@@ -102,7 +103,7 @@ sub _initialize {
       = new_share( $self->{key}, $self->{size}, $self->{flags} )
       or return undef;
 
-    1;
+    return 1;
 }
 
 sub _rearrange_args {
@@ -180,7 +181,7 @@ sub num_segments {
 
     my $count = sharelite_num_segments( $self->{share} );
     return undef if $count < 0;
-    $count;
+    return $count;
 }
 
 sub destroy {

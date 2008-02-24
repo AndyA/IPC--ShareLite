@@ -19,10 +19,10 @@ extern int errno;
 /* Use Perl's memory management */
 
 #ifndef Newxz
-#define Newxz(pointer, number, type) Newz(1, pointer, number, type)
+#define Newxz(pointer, number, type) \
+    Newz(1, pointer, number, type)
 #endif
 
-/* Not always defined */
 #ifdef HAS_UNION_SEMUN
 #define SEMUN union semun
 #else
@@ -32,7 +32,7 @@ union my_semun {
     unsigned short *array;
 };
 #define SEMUN union my_semun
-#endif                          /* HAS_UNION_SEMUN */
+#endif
 
 /* --- DEFINE MACROS FOR SEMAPHORE OPERATIONS --- */
 

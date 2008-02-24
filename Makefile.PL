@@ -5,7 +5,6 @@ use warnings;
 
 use Config;
 use ExtUtils::MakeMaker;
-use File::Temp qw( tempfile );
 
 WriteMakefile(
     ( MM->can( 'signature_target' ) ? ( SIGN => 1 ) : () ),
@@ -20,7 +19,7 @@ WriteMakefile(
     DEFINE        => '',
     INC           => '',
     OBJECT        => 'sharelite.o ShareLite.o',
-    CCFLAGS       => join( ' ', '-Wall', $Config{ccflags} ),
-    dist          => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean => { FILES => 'IPC-ShareLite-*' },
+    # CCFLAGS       => join( ' ', '-Wall', $Config{ccflags} ),
+    dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    clean => { FILES    => 'IPC-ShareLite-*' },
 );

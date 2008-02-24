@@ -8,20 +8,28 @@
 
 /* Lock constants used internally by us.  They happen to be the same *
  * as for flock(), but that's purely coincidental                    */
+#ifndef LOCK_SH
 #define LOCK_SH 1
+#endif
+#ifndef LOCK_EX
 #define LOCK_EX 2
+#endif
+#ifndef LOCK_NB
 #define LOCK_NB 4
+#endif
+#ifndef LOCK_UN
 #define LOCK_UN 8
+#endif
 
 /* Structure at the top of every shared memory segment. *
  * next_shmid is used to construct a linked-list of     *
  * segments.  length is unused, except for the first    *
- * segment.                                             */ 
+ * segment.                                             */
 typedef struct {
-  key_t        next_shmid;
-  int          length;
-  unsigned int shm_state;
-  unsigned int version;
+    key_t next_shmid;
+    int length;
+    unsigned int shm_state;
+    unsigned int version;
 } Header;
 
 /* Structure for the per-process segment list.  This list    *
@@ -33,32 +41,32 @@ typedef struct {
  * linked-list -- nodes are added on to this list on an      *
  * as-needed basis                                           */
 typedef struct node {
-  int         shmid;
-  Header      *shmaddr;
-  struct node *next;
+    int shmid;
+    Header *shmaddr;
+    struct node *next;
 } Node;
 
 /* The primary structure for this library.  We pass this back *
  * and forth to perl                                          */
 typedef struct {
-  key_t        key;
-  key_t        next_key;
-  int          segment_size;
-  int          data_size;
-  int          flags;
-  int          semid;
-  short        lock;
-  Node         *head;
-  Node         *tail;
-  unsigned int shm_state;
-  unsigned int version;
-} Share;                
+    key_t key;
+    key_t next_key;
+    int segment_size;
+    int data_size;
+    int flags;
+    int semid;
+    short lock;
+    Node *head;
+    Node *tail;
+    unsigned int shm_state;
+    unsigned int version;
+} Share;
 
 /* prototypes */
 
-int   write_share(Share *share, char *data, int length);
-Share *new_share(key_t key, int segment_size, int flags);
-int   read_share(Share *share, char **data);
-int   sharelite_lock(Share *share, int flags); 
-int   sharelite_unlock(Share *share);
-int   destroy_share (Share *share, int rmid);
+int write_share( Share * share, char *data, int length );
+Share *new_share( key_t key, int segment_size, int flags );
+int read_share( Share * share, char **data );
+int sharelite_lock( Share * share, int flags );
+int sharelite_unlock( Share * share );
+int destroy_share( Share * share, int rmid );

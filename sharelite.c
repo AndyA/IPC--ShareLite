@@ -15,8 +15,6 @@ extern int errno;
 
 void *Perl_malloc(  );
 
-void *Perl_malloc(  );
-
 #ifndef HAS_UNION_SEMUN
 union semun {
     int val;
@@ -308,8 +306,7 @@ write_share( Share * share, char *data, int length ) {
         }
         chunk_size = ( left > share->data_size ? share->data_size : left );
         shmaddr = ( char * ) node->shmaddr + sizeof( Header );
-        if ( memcpy( shmaddr, data, chunk_size ) == NULL )
-            return -1;
+        memcpy( shmaddr, data, chunk_size );
         left -= chunk_size;
         data += chunk_size;
         if ( segments )
@@ -356,41 +353,52 @@ read_share( Share * share, char **data ) {
     int chunk_size;
 
     if ( !share->lock ) {
-        if ( GET_SH_LOCK( share->semid ) < 0 )
+        if ( GET_SH_LOCK( share->semid ) < 0 ) {
             return -1;
+        }
     }
 
     if ( share->shm_state != share->head->shmaddr->shm_state ) {
-        if ( _invalidate_segments( share ) < 0 )
+        if ( _invalidate_segments( share ) < 0 ) {
             return -1;
+        }
     }
 
     node = share->head;
     left = length = node->shmaddr->length;
 
-    if ( ( pos = *data = ( char * ) Perl_malloc( length ) ) == NULL )
+    /* Allocate extra byte for a null at the end */
+    if ( ( pos = *data = ( char * ) Perl_malloc( length + 1 ) ) == NULL ) {
         return -1;
+    }
+
+    pos[length] = '\0';
 
     while ( left ) {
         if ( node == NULL ) {
-            if ( ( node = _add_segment( share ) ) == NULL )
-                return -1;
+            if ( ( node = _add_segment( share ) ) == NULL ) {
+                goto fail;
+            }
         }
         chunk_size = ( left > share->data_size ? share->data_size : left );
         shmaddr = ( char * ) node->shmaddr + sizeof( Header );
-        if ( memcpy( pos, shmaddr, chunk_size ) == NULL )
-            return -1;
+        memcpy( pos, shmaddr, chunk_size );
         pos += chunk_size;
         left -= chunk_size;
         node = node->next;
     }
 
     if ( !share->lock ) {
-        if ( RM_SH_LOCK( share->semid ) < 0 )
-            return -1;
+        if ( RM_SH_LOCK( share->semid ) < 0 ) {
+            goto fail;
+        }
     }
 
     return length;
+
+  fail:
+    Perl_mfree( *data );
+    return -1;
 }
 
 Share *

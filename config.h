@@ -13,7 +13,7 @@
 /*
  * Package name      : IPC-ShareLite
  * Source directory  : .
- * Configuration time: Sat 23 Feb 2008 17:56:18 GMT
+ * Configuration time: Sun 24 Feb 2008 00:03:47 GMT
  * Configured by     : andy
  * Target system     : darwin voodoo.local 9.2.0 darwin kernel version 9.2.0: tue feb 5 16:13:22 pst 2008; root:xnu-1228.3.13~1release_i386 i386 
  */

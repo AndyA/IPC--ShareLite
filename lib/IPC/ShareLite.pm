@@ -2,31 +2,53 @@ package IPC::ShareLite;
 
 use strict;
 use Carp;
-use vars qw( $VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $AUTOLOAD );
-use subs qw( IPC_CREAT IPC_EXCL IPC_RMID IPC_STAT IPC_PRIVATE
-  GETVAL SETVAL GETALL SEM_UNDO LOCK_EX LOCK_SH LOCK_UN LOCK_NB );
+
+=head1 NAME
+
+IPC::ShareLite - Lightweight interface to shared memory 
+
+=head1 VERSION
+
+This document describes IPC::ShareLite version 0.10
+
+=cut
+
+use vars qw(
+  $VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $AUTOLOAD
+);
+
+use subs qw(
+  IPC_CREAT IPC_EXCL IPC_RMID IPC_STAT IPC_PRIVATE GETVAL SETVAL GETALL
+  SEM_UNDO LOCK_EX LOCK_SH LOCK_UN LOCK_NB
+);
 
 require Exporter;
 require DynaLoader;
 require AutoLoader;
 
-@ISA = qw(Exporter DynaLoader);
+@ISA = qw( Exporter DynaLoader );
 
-@EXPORT    = qw( );
-@EXPORT_OK = qw( IPC_CREAT IPC_EXCL IPC_RMID IPC_STATE IPC_PRIVATE
-  GETVAL SETVAL GETALL SEM_UNDO LOCK_EX LOCK_SH LOCK_UN
-  LOCK_NB);
+@EXPORT = qw( );
+
+@EXPORT_OK = qw(
+  IPC_CREAT IPC_EXCL IPC_RMID IPC_STATE IPC_PRIVATE GETVAL SETVAL GETALL
+  SEM_UNDO LOCK_EX LOCK_SH LOCK_UN LOCK_NB
+);
+
 %EXPORT_TAGS = (
     all => [
-        qw( IPC_CREAT IPC_EXCL IPC_RMID IPC_PRIVATE
-          LOCK_EX LOCK_SH LOCK_UN LOCK_NB )
+        qw(
+          IPC_CREAT IPC_EXCL IPC_RMID IPC_PRIVATE LOCK_EX LOCK_SH LOCK_UN
+          LOCK_NB
+          )
     ],
-    lock    => [qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB )],
-    'flock' => [qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB )],
+    lock  => [qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB )],
+    flock => [qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB )],
 );
+
 Exporter::export_ok_tags( 'all', 'lock', 'flock' );
 
-$VERSION = '0.09';
+$VERSION = '0.10';
 
 sub new {
     my $class = shift;
@@ -61,8 +83,11 @@ sub _initialize {
       unless ( $self->{key} =~ /^\d+$/ );
 
     $self->{create} = ( $args->{create} ? IPC_CREAT : 0 );
-    $self->{exclusive}
-      = ( $args->{exclusive} ? IPC_EXCL | IPC_CREAT : 0 );
+    $self->{exclusive} = (
+        $args->{exclusive}
+        ? IPC_EXCL | IPC_CREAT
+        : 0
+    );
     $self->{'destroy'} = ( $args->{'destroy'} ? 1 : 0 );
     $self->{flags} = $args->{flags} || 0;
     $self->{mode}  = $args->{mode}  || 0666 unless $args->{flags};
@@ -109,7 +134,7 @@ sub store {
     if ( write_share( $self->{share}, $_[0], length $_[0] ) < 0 ) {
         croak "IPC::ShareLite store() error: $!";
     }
-    1;
+    return 1;
 }
 
 sub fetch {
@@ -117,7 +142,7 @@ sub fetch {
 
     my $str = read_share( $self->{share} );
     defined $str or croak "IPC::ShareLite fetch() error: $!";
-    $str;
+    return $str;
 }
 
 sub lock {
@@ -126,14 +151,14 @@ sub lock {
     my $response = sharelite_lock( $self->{share}, shift() );
     return undef if ( $response == -1 );
     return 0 if ( $response == 1 );    # operation failed due to LOCK_NB
-    1;
+    return 1;
 }
 
 sub unlock {
     my $self = shift;
 
     return undef if ( sharelite_unlock( $self->{share} ) < 0 );
-    1;
+    return 1;
 }
 
 # DEPRECATED -- Use lock() and unlock() instead.
@@ -198,20 +223,18 @@ bootstrap IPC::ShareLite $VERSION;
 
 __END__
 
-=head1 NAME
-
-IPC::ShareLite - Light-weight interface to shared memory 
-
 =head1 SYNOPSIS
 
-  use IPC::ShareLite;
+    use IPC::ShareLite;
 
-  $share = new IPC::ShareLite( -key     => 1971,
-                               -create  => 'yes',
-                               -destroy => 'no' ) or die $!;
+    my $share = new IPC::ShareLite(
+        -key     => 1971,
+        -create  => 'yes',
+        -destroy => 'no'
+    ) or die $!;
 
-  $share->store("This is stored in shared memory");
-  $str = $share->fetch;
+    $share->store( "This is stored in shared memory" );
+    my $str = $share->fetch;
 
 =head1 DESCRIPTION
 
@@ -233,9 +256,11 @@ for additional speed.
 
 Construct an IPC::ShareLite object by calling its constructor:
 
-	$share = new IPC::ShareLite( -key     => 1971,
-                                     -create  => 'yes',
-                                     -destroy => 'no' ) or die $!;
+    my $share = new IPC::ShareLite(
+        -key     => 1971,
+        -create  => 'yes',
+        -destroy => 'no'
+    ) or die $!;
 
 Once an instance has been created, data can be written to shared memory
 by calling the store() method:
@@ -244,7 +269,7 @@ by calling the store() method:
 
 Retrieve the data by calling the fetch() method:
 
-	$str = $share->fetch();
+	my $str = $share->fetch();
 
 The store() and fetch() methods are atomic; any processes attempting
 to read or write to the memory are blocked until these calls finish.
@@ -451,16 +476,18 @@ data format used by IPC::Shareable.
 
 =head1 AUTHOR
 
-Copyright 1998-2002, Maurice Aubrey E<lt>maurice@hevanet.comE<gt>. 
+Copyright 1998-2002, Maurice Aubrey <maurice@hevanet.com>. 
 All rights reserved.
+
+This release by Andy Armstrong <andy@hexten.net>.
 
 This module is free software; you may redistribute it and/or
 modify it under the same terms as Perl itself. 
 
 =head1 CREDITS
 
-Special thanks to Benjamin Sugars for developing the IPC::Shareable
-module.
+Special thanks to Benjamin Sugars for developing the
+IPC::Shareable module.
 
 See the Changes file for other contributors.
 

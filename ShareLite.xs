@@ -34,19 +34,8 @@ newSVpvn( char *s, STRLEN len ) {
 #endif                          /* not perl5.004_05 */
 #endif                          /* perl5.004_XX */
 
-static int
-not_here( s )
-char *s;
-{
-    croak( "%s not implemented on this architecture", s );
-    return -1;
-}
-
 static double
-constant( name, arg )
-char *name;
-int arg;
-{
+constant( char *name, int arg ) {
     errno = 0;
     switch ( *name ) {
     case 'A':
@@ -307,25 +296,16 @@ int arg;
 MODULE = IPC::ShareLite PACKAGE = IPC::ShareLite
 
 double
-constant(name,arg)
-char *      name
-int         arg
+constant( char *name, int arg)
 
 Share*
-new_share(key, segment_size, flags)
-key_t       key
-int         segment_size
-int         flags
+new_share(key_t key, int segment_size, int flags)
 
 int
-write_share(share, data, length)
-Share*      share
-char*       data
-int         length
+write_share(Share *share, char *data, int length)
 
 char* 
-read_share(share)
-Share*   share
+read_share(Share *share)
   PREINIT:
     char*    data; 
     int      length;
@@ -343,23 +323,16 @@ Share*   share
     }
  
 int
-destroy_share(share, rmid)
-    Share*      share
-    int     rmid
+destroy_share(Share *share, int rmid)
 
 int
-sharelite_lock(share, flags)
-    Share*      share
-    int     flags
+sharelite_lock(Share *share, int flags)
 
 int
-sharelite_unlock(share)
-    Share*      share
+sharelite_unlock(Share *share)
 
 unsigned int
-sharelite_version(share)
-    Share*      share
+sharelite_version(Share *share)
 
 int
-sharelite_num_segments(share)
-    Share*      share
+sharelite_num_segments(Share *share)

@@ -12,6 +12,17 @@
 extern int errno;
 #endif
 
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+
+/* Use Perl's memory management */
+
+#ifndef Newxz
+#define Newxz(pointer, number, type) Newz(1, pointer, number, type)
+#endif
+
+/* Not always defined */
 #ifdef HAS_UNION_SEMUN
 #define SEMUN union semun
 #else
@@ -72,38 +83,45 @@ static struct sembuf sh_unlock[1] = {
 int
 sharelite_lock( Share * share, int flags ) {
 
-    if ( !flags )               /* try to obtain exclusive lock by default */
+    /* try to obtain exclusive lock by default */
+    if ( !flags ) {
         flags = LOCK_EX;
+    }
 
     /* Check for invalid combination of flags.  Invalid combinations *
      * are attempts to obtain *both* an exclusive and shared lock or *
      * to both obtain and release a lock at the same time            */
     if ( ( ( flags & LOCK_EX ) && ( flags & LOCK_SH ) ) ||
          ( ( flags & LOCK_UN )
-           && ( ( flags & LOCK_EX ) || ( flags & LOCK_SH ) ) ) )
+           && ( ( flags & LOCK_EX ) || ( flags & LOCK_SH ) ) ) ) {
         return -1;
+    }
 
     if ( flags & LOCK_EX ) {
                          /*** WANTS EXCLUSIVE LOCK ***/
         /* If they already have an exclusive lock, just return */
-        if ( share->lock & LOCK_EX )
+        if ( share->lock & LOCK_EX ) {
             return 0;
+        }
         /* If they currently have a shared lock, remove it */
         if ( share->lock & LOCK_SH ) {
-            if ( RM_SH_LOCK( share->semid ) < 0 )
+            if ( RM_SH_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
             share->lock = 0;
         }
         if ( flags & LOCK_NB ) {        /* non-blocking request */
             if ( GET_EX_LOCK_NB( share->semid ) < 0 ) {
-                if ( errno == EAGAIN )  /* would we have blocked? */
+                if ( errno == EAGAIN ) {        /* would we have blocked? */
                     return 1;
+                }
                 return -1;
             }
         }
         else {                  /* blocking request */
-            if ( GET_EX_LOCK( share->semid ) < 0 )
+            if ( GET_EX_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
         }
         share->lock = LOCK_EX;
         return 0;
@@ -111,37 +129,43 @@ sharelite_lock( Share * share, int flags ) {
     else if ( flags & LOCK_SH ) {
                                 /*** WANTS SHARED LOCK ***/
         /* If they already have a shared lock, just return */
-        if ( share->lock & LOCK_SH )
+        if ( share->lock & LOCK_SH ) {
             return 0;
+        }
         /* If they currently have an exclusive lock, remove it */
         if ( share->lock & LOCK_EX ) {
-            if ( RM_EX_LOCK( share->semid ) < 0 )
+            if ( RM_EX_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
             share->lock = 0;
         }
         if ( flags & LOCK_NB ) {        /* non-blocking request */
             if ( GET_SH_LOCK_NB( share->semid ) < 0 ) {
-                if ( errno == EAGAIN )  /* would we have blocked? */
+                if ( errno == EAGAIN ) {        /* would we have blocked? */
                     return 1;
+                }
                 return -1;
             }
         }
         else {                  /* blocking request */
-            if ( GET_SH_LOCK( share->semid ) < 0 )
+            if ( GET_SH_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
         }
         share->lock = LOCK_SH;
         return 0;
     }
     else if ( flags & LOCK_UN ) {
-                                /*** WANTS TO RELEASE LOCK ***/
+        /*** WANTS TO RELEASE LOCK ***/
         if ( share->lock & LOCK_EX ) {
-            if ( RM_EX_LOCK( share->semid ) < 0 )
+            if ( RM_EX_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
         }
         else if ( share->lock & LOCK_SH ) {
-            if ( RM_SH_LOCK( share->semid ) < 0 )
+            if ( RM_SH_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
         }
     }
 
@@ -151,12 +175,14 @@ sharelite_lock( Share * share, int flags ) {
 int
 sharelite_unlock( Share * share ) {
     if ( share->lock & LOCK_EX ) {
-        if ( RM_EX_LOCK( share->semid ) < 0 )
+        if ( RM_EX_LOCK( share->semid ) < 0 ) {
             return -1;
+        }
     }
     else if ( share->lock & LOCK_SH ) {
-        if ( RM_SH_LOCK( share->semid ) < 0 )
+        if ( RM_SH_LOCK( share->semid ) < 0 ) {
             return -1;
+        }
     }
     share->lock = 0;
     return 0;
@@ -167,8 +193,8 @@ _add_segment( Share * share ) {
     Node *node;
     int flags;
 
-    if ( ( node = ( Node * ) malloc( sizeof( Node ) ) ) == NULL )
-        return NULL;
+    Newxz( node, 1, Node );
+
     node->next = NULL;
 
     /* Does another shared memory segment already exist? */
@@ -176,8 +202,9 @@ _add_segment( Share * share ) {
         node->shmid = share->tail->shmaddr->next_shmid;
         if ( ( node->shmaddr =
                ( Header * ) shmat( node->shmid, ( char * ) 0,
-                                   0 ) ) == ( Header * ) - 1 )
+                                   0 ) ) == ( Header * ) - 1 ) {
             return NULL;
+        }
         share->tail->next = node;
         share->tail = node;
         return node;
@@ -189,14 +216,17 @@ _add_segment( Share * share ) {
     while ( 1 ) {
         node->shmid =
             shmget( share->next_key++, share->segment_size, flags );
-        if ( node->shmid >= 0 )
+        if ( node->shmid >= 0 ) {
             break;
+        }
 #ifdef EIDRM
-        if ( errno == EEXIST || errno == EIDRM )
+        if ( errno == EEXIST || errno == EIDRM ) {
             continue;
+        }
 #else
-        if ( errno == EEXIST )
+        if ( errno == EEXIST ) {
             continue;
+        }
 #endif
         return NULL;
     }
@@ -206,8 +236,9 @@ _add_segment( Share * share ) {
     share->tail = node;
     if ( ( node->shmaddr =
            ( Header * ) shmat( node->shmid, ( char * ) 0,
-                               0 ) ) == ( Header * ) - 1 )
+                               0 ) ) == ( Header * ) - 1 ) {
         return NULL;
+    }
     node->shmaddr->next_shmid = -1;
     node->shmaddr->length = 0;
 
@@ -220,9 +251,10 @@ _detach_segments( Node * node ) {
 
     while ( node != NULL ) {
         next_node = node->next;
-        if ( shmdt( ( char * ) node->shmaddr ) < 0 )
+        if ( shmdt( ( char * ) node->shmaddr ) < 0 ) {
             return -1;
-        free( node );
+        }
+        Safefree( node );
         node = next_node;
     }
     return 0;
@@ -236,13 +268,16 @@ _remove_segments( int shmid ) {
     while ( shmid >= 0 ) {
         if ( ( shmaddr =
                ( Header * ) shmat( shmid, ( char * ) 0,
-                                   0 ) ) == ( Header * ) - 1 )
+                                   0 ) ) == ( Header * ) - 1 ) {
             return -1;
+        }
         next_shmid = shmaddr->next_shmid;
-        if ( shmdt( ( char * ) shmaddr ) < 0 )
+        if ( shmdt( ( char * ) shmaddr ) < 0 ) {
             return -1;
-        if ( shmctl( shmid, IPC_RMID, ( struct shmid_ds * ) 0 ) < 0 )
+        }
+        if ( shmctl( shmid, IPC_RMID, ( struct shmid_ds * ) 0 ) < 0 ) {
             return -1;
+        }
         shmid = next_shmid;
     }
 
@@ -252,8 +287,9 @@ _remove_segments( int shmid ) {
 int
 _invalidate_segments( Share * share ) {
 
-    if ( _detach_segments( share->head->next ) < 0 )
+    if ( _detach_segments( share->head->next ) < 0 ) {
         return -1;
+    }
     share->head->next = NULL;
     share->tail = share->head;
     share->shm_state = share->head->shmaddr->shm_state;
@@ -270,21 +306,25 @@ write_share( Share * share, char *data, int length ) {
     Node *node;
     int shmid;
 
-    if ( data == NULL )
+    if ( data == NULL ) {
         return -1;
+    }
 
     if ( !( share->lock & LOCK_EX ) ) {
         if ( share->lock & LOCK_SH ) {
-            if ( RM_SH_LOCK( share->semid ) < 0 )
+            if ( RM_SH_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
         }
-        if ( GET_EX_LOCK( share->semid ) < 0 )
+        if ( GET_EX_LOCK( share->semid ) < 0 ) {
             return -1;
+        }
     }
 
     if ( share->shm_state != share->head->shmaddr->shm_state ) {
-        if ( _invalidate_segments( share ) < 0 )
+        if ( _invalidate_segments( share ) < 0 ) {
             return -1;
+        }
     }
 
     /* set the data length to zero.  if we are interrupted or encounter *
@@ -301,16 +341,18 @@ write_share( Share * share, char *data, int length ) {
     left = length;
     while ( segments-- ) {
         if ( node == NULL ) {
-            if ( ( node = _add_segment( share ) ) == NULL )
+            if ( ( node = _add_segment( share ) ) == NULL ) {
                 return -1;
+            }
         }
         chunk_size = ( left > share->data_size ? share->data_size : left );
         shmaddr = ( char * ) node->shmaddr + sizeof( Header );
         memcpy( shmaddr, data, chunk_size );
         left -= chunk_size;
         data += chunk_size;
-        if ( segments )
+        if ( segments ) {
             node = node->next;
+        }
     }
 
     /* set new length in header of first segment */
@@ -319,10 +361,12 @@ write_share( Share * share, char *data, int length ) {
     /* garbage collection -- remove unused segments */
     if ( node->shmaddr->next_shmid >= 0 ) {
         shmid = node->shmaddr->next_shmid;
-        if ( _detach_segments( node->next ) < 0 )
+        if ( _detach_segments( node->next ) < 0 ) {
             return -1;
-        if ( _remove_segments( shmid ) < 0 )
+        }
+        if ( _remove_segments( shmid ) < 0 ) {
             return -1;
+        }
         node->shmaddr->next_shmid = -1;
         node->next = NULL;
         share->tail = node;
@@ -332,11 +376,13 @@ write_share( Share * share, char *data, int length ) {
     ++share->head->shmaddr->version;
 
     if ( !( share->lock & LOCK_EX ) ) {
-        if ( RM_EX_LOCK( share->semid ) < 0 )
+        if ( RM_EX_LOCK( share->semid ) < 0 ) {
             return -1;
+        }
         if ( share->lock & LOCK_SH ) {
-            if ( GET_SH_LOCK( share->semid ) < 0 )
+            if ( GET_SH_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
         }
     }
 
@@ -368,9 +414,8 @@ read_share( Share * share, char **data ) {
     left = length = node->shmaddr->length;
 
     /* Allocate extra byte for a null at the end */
-    if ( ( pos = *data = ( char * ) malloc( length + 1 ) ) == NULL ) {
-        return -1;
-    }
+    Newxz( *data, length + 1, char );
+    pos = *data;
 
     pos[length] = '\0';
 
@@ -397,7 +442,7 @@ read_share( Share * share, char **data ) {
     return length;
 
   fail:
-    free( *data );
+    Safefree( *data );
     return -1;
 }
 
@@ -410,15 +455,17 @@ new_share( key_t key, int segment_size, int flags ) {
     SEMUN semun_arg;
 
   again:
-    if ( ( semid = semget( key, 3, flags ) ) < 0 )
+    if ( ( semid = semget( key, 3, flags ) ) < 0 ) {
         return NULL;
+    }
 
     /* It's possible for another process to obtain the semaphore, lock it, *
      * and remove it from the system before we have a chance to lock it.   *
      * In this case (EINVAL) we just try to create it again.               */
     if ( GET_EX_LOCK( semid ) < 0 ) {
-        if ( errno == EINVAL )
+        if ( errno == EINVAL ) {
             goto again;
+        }
         return NULL;
     }
 
@@ -427,18 +474,22 @@ new_share( key_t key, int segment_size, int flags ) {
         segment_size = SHM_SEGMENT_SIZE;
     }
 
-    if ( ( node = ( Node * ) malloc( sizeof( Node ) ) ) == NULL )
+    Newxz( node, 1, Node );
+
+    if ( ( node->shmid = shmget( key, segment_size, flags ) ) < 0 ) {
         return NULL;
-    if ( ( node->shmid = shmget( key, segment_size, flags ) ) < 0 )
-        return NULL;
+    }
+
     if ( ( node->shmaddr =
            ( Header * ) shmat( node->shmid, ( char * ) 0,
-                               0 ) ) == ( Header * ) - 1 )
+                               0 ) ) == ( Header * ) - 1 ) {
         return NULL;
+    }
+
     node->next = NULL;
 
-    if ( ( share = ( Share * ) malloc( sizeof( Share ) ) ) == NULL )
-        return NULL;
+    Newxz( share, 1, Share );
+
     share->key = key;
     share->next_key = key + 1;
     share->flags = flags;
@@ -449,13 +500,15 @@ new_share( key_t key, int segment_size, int flags ) {
 
     /* is this a newly created segment?  if so, initialize it */
     if ( ( semun_arg.val =
-           semctl( share->semid, 0, GETVAL, semun_arg ) ) < 0 )
+           semctl( share->semid, 0, GETVAL, semun_arg ) ) < 0 ) {
         return NULL;
+    }
 
     if ( semun_arg.val == 0 ) {
         semun_arg.val = 1;
-        if ( semctl( share->semid, 0, SETVAL, semun_arg ) < 0 )
+        if ( semctl( share->semid, 0, SETVAL, semun_arg ) < 0 ) {
             return NULL;
+        }
         share->head->shmaddr->length = 0;
         share->head->shmaddr->next_shmid = -1;
         share->head->shmaddr->shm_state = 1;
@@ -468,13 +521,16 @@ new_share( key_t key, int segment_size, int flags ) {
     /* determine the true length of the segment.  this may disagree *
      * with what the user requested, since shmget() calls will      *
      * succeed if the requested size <= the existing size           */
-    if ( shmctl( share->head->shmid, IPC_STAT, &shmctl_arg ) < 0 )
+    if ( shmctl( share->head->shmid, IPC_STAT, &shmctl_arg ) < 0 ) {
         return NULL;
+    }
+
     share->segment_size = shmctl_arg.shm_segsz;
     share->data_size = share->segment_size - sizeof( Header );
 
-    if ( RM_EX_LOCK( semid ) < 0 )
+    if ( RM_EX_LOCK( semid ) < 0 ) {
         return NULL;
+    }
 
     return share;
 }
@@ -491,30 +547,36 @@ destroy_share( Share * share, int rmid ) {
 
     if ( !( share->lock & LOCK_EX ) ) {
         if ( share->lock & LOCK_SH ) {
-            if ( RM_SH_LOCK( share->semid ) < 0 )
+            if ( RM_SH_LOCK( share->semid ) < 0 ) {
                 return -1;
+            }
         }
-        if ( GET_EX_LOCK( share->semid ) < 0 )
+        if ( GET_EX_LOCK( share->semid ) < 0 ) {
             return -1;
+        }
     }
 
     semid = share->head->shmid;
-    if ( _detach_segments( share->head ) < 0 )
+    if ( _detach_segments( share->head ) < 0 ) {
         return -1;
+    }
 
     if ( rmid ) {
-        if ( _remove_segments( semid ) < 0 )
+        if ( _remove_segments( semid ) < 0 ) {
             return -1;
+        }
         semctl_arg.val = 0;
-        if ( semctl( share->semid, 0, IPC_RMID, semctl_arg ) < 0 )
+        if ( semctl( share->semid, 0, IPC_RMID, semctl_arg ) < 0 ) {
             return -1;
+        }
     }
     else {
-        if ( RM_EX_LOCK( share->semid ) < 0 )
+        if ( RM_EX_LOCK( share->semid ) < 0 ) {
             return -1;
+        }
     }
 
-    free( share );
+    Safefree( share );
 
     return 0;
 }
@@ -530,11 +592,13 @@ sharelite_num_segments( Share * share ) {
         count++;
         if ( ( shmaddr =
                ( Header * ) shmat( shmid, ( char * ) 0,
-                                   0 ) ) == ( Header * ) - 1 )
+                                   0 ) ) == ( Header * ) - 1 ) {
             return -1;
+        }
         shmid = shmaddr->next_shmid;
-        if ( shmdt( ( char * ) shmaddr ) < 0 )
+        if ( shmdt( ( char * ) shmaddr ) < 0 ) {
             return -1;
+        }
     }
 
     return count;

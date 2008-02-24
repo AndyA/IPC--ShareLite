@@ -7,18 +7,6 @@ use Config;
 use ExtUtils::MakeMaker;
 use File::Temp qw( tempfile );
 
-my @define = ();
-push @define, '$(PERL_MALLOC_DEF)' if $Config{usemallocwrap};
-
-# push @define, '-DHAS_UNION_SEMUN' if try(
-#     <<EOS
-# #include <sys/types.h>
-# #include <sys/ipc.h>
-# #include <sys/sem.h>
-# int main () { union semun semun; semun.buf = 0; }
-# EOS
-# );
-
 WriteMakefile(
     ( MM->can( 'signature_target' ) ? ( SIGN => 1 ) : () ),
     NAME          => 'IPC::ShareLite',
@@ -29,20 +17,10 @@ WriteMakefile(
     PL_FILES      => {},
     PREREQ_PM     => { 'Test::More' => 0, },
     LIBS          => [''],
-    DEFINE        => join( ' ', @define ),
+    DEFINE        => '',
     INC           => '',
     OBJECT        => 'sharelite.o ShareLite.o',
+    CCFLAGS       => join( ' ', '-Wall', $Config{ccflags} ),
     dist          => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'IPC-ShareLite-*' },
 );
-
-sub try {
-    my $src = shift;
-    my ( $fh, $fn ) = tempfile( UNLINK => 1, SUFFIX => '.c' );
-    my ( $oh, $on ) = tempfile( UNLINK => 1, SUFFIX => '.o' );
-    print $fh $src;
-    my $cmd
-      = join( ' ', $Config{cc}, $Config{ccflags}, '-o', $on, $fn );
-    return 0 == system( $cmd);
-}
-

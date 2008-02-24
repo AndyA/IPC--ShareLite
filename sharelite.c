@@ -15,7 +15,6 @@ extern int errno;
 
 void *Perl_malloc(  );
 
-#if 0
 #ifndef HAS_UNION_SEMUN
 union semun {
     int val;
@@ -23,7 +22,6 @@ union semun {
     unsigned short *array;
 };
 #endif                          /* HAS_UNION_SEMUN */
-#endif
 
 /* --- DEFINE MACROS FOR SEMAPHORE OPERATIONS --- */
 

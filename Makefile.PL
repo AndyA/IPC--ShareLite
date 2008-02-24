@@ -7,7 +7,7 @@ use Config;
 use ExtUtils::MakeMaker;
 use File::Temp qw( tempfile );
 
-my @define = ();
+my @define = ( '$(PERL_MALLOC_DEF)' );
 
 # push @define, '-DHAS_UNION_SEMUN' if try(
 #     <<EOS

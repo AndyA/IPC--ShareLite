@@ -6,19 +6,10 @@
 #include <sys/shm.h>
 #include <sys/sem.h>
 #include <errno.h>
-/*#include "config.h"*/
 #include "sharelite.h"
 
 #ifndef errno
 extern int errno;
-#endif
-
-#if defined(Perl_malloc) && defined(Perl_mfree)
-#define PERL_MALLOC Perl_malloc
-#define PERL_FREE   Perl_mfree
-#else
-#define PERL_MALLOC malloc
-#define PERL_FREE   free
 #endif
 
 #ifdef HAS_UNION_SEMUN
@@ -377,7 +368,7 @@ read_share( Share * share, char **data ) {
     left = length = node->shmaddr->length;
 
     /* Allocate extra byte for a null at the end */
-    if ( ( pos = *data = ( char * ) PERL_MALLOC( length + 1 ) ) == NULL ) {
+    if ( ( pos = *data = ( char * ) malloc( length + 1 ) ) == NULL ) {
         return -1;
     }
 
@@ -406,7 +397,7 @@ read_share( Share * share, char **data ) {
     return length;
 
   fail:
-    PERL_FREE( *data );
+    free( *data );
     return -1;
 }
 

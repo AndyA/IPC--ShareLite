@@ -1,5 +1,4 @@
 Changes
-config.h
 lib/IPC/ShareLite.pm
 Makefile.PL
 MANIFEST

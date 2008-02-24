@@ -1,7 +1,7 @@
 use 5.006001;
 
 use strict;
-use warnings;
+# use warnings;
 
 use Config;
 use ExtUtils::MakeMaker;
@@ -11,11 +11,15 @@ if ( $^O =~ /^(MS)?Win32$/ ) {
     exit 0;    # == NA test result
 }
 
-WriteMakefile(
+if ( $^O =~ /^VMS$/ ) {
+    warn "IPC::ShareLite doesn't work on VMS.\nStopping.\n";
+    exit 0;    # == NA test result
+}
+
+my %mm_args = (
     ( MM->can( 'signature_target' ) ? ( SIGN => 1 ) : () ),
     NAME          => 'IPC::ShareLite',
     AUTHOR        => 'Maurice Aubrey <maurice@cpan.org>',
-    LICENSE       => 'perl',
     VERSION_FROM  => 'lib/IPC/ShareLite.pm',
     ABSTRACT_FROM => 'lib/IPC/ShareLite.pm',
     PL_FILES      => {},
@@ -27,3 +31,13 @@ WriteMakefile(
     dist          => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => 'IPC-ShareLite-*' },
 );
+
+{
+    local $^W = 0;    # Silence warning about non-numeric version
+    if ( $ExtUtils::MakeMaker::VERSION >= '6.31' ) {
+        $mm_args{LICENSE} = 'perl';
+    }
+}
+
+WriteMakefile( %mm_args );
+

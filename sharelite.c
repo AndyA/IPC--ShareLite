@@ -15,12 +15,15 @@ extern int errno;
 
 void *Perl_malloc(  );
 
-#ifndef HAS_UNION_SEMUN
-union semun {
+#ifdef HAS_UNION_SEMUN
+#define SEMUN union semun
+#else
+union my_semun {
     int val;
     struct semid_ds *buf;
     unsigned short *array;
 };
+#define SEMUN union my_semun
 #endif                          /* HAS_UNION_SEMUN */
 
 /* --- DEFINE MACROS FOR SEMAPHORE OPERATIONS --- */
@@ -407,7 +410,7 @@ new_share( key_t key, int segment_size, int flags ) {
     Node *node;
     int semid;
     struct shmid_ds shmctl_arg;
-    union semun semun_arg;
+    SEMUN semun_arg;
 
   again:
     if ( ( semid = semget( key, 3, flags ) ) < 0 )
@@ -487,7 +490,7 @@ sharelite_version( Share * share ) {
 int
 destroy_share( Share * share, int rmid ) {
     int semid;
-    union semun semctl_arg;
+    SEMUN semctl_arg;
 
     if ( !( share->lock & LOCK_EX ) ) {
         if ( share->lock & LOCK_SH ) {

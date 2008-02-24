@@ -165,10 +165,7 @@ The constructor returns the undefined value on error.
 
 sub new {
     my $class = shift;
-    my $self  = {};
-
-    $class = ref $class || $class;
-    bless $self, $class;
+    my $self = bless {}, ref $class || $class;
 
     my $args = $class->_rearrange_args(
         [
@@ -192,17 +189,23 @@ sub _initialize {
           if defined $args->{$_} and lc $args->{$_} eq 'no';
     }
 
+    # Allow glue as a synonym for key
     $self->{key} = $args->{key} || $args->{glue} || IPC_PRIVATE;
+
+    # Allow a four character string as the key
     $self->{key} = unpack( 'i', pack( 'A4', $self->{key} ) )
       unless ( $self->{key} =~ /^\d+$/ );
 
     $self->{create} = ( $args->{create} ? IPC_CREAT : 0 );
+
     $self->{exclusive} = (
         $args->{exclusive}
         ? IPC_EXCL | IPC_CREAT
         : 0
     );
-    $self->{'destroy'} = ( $args->{'destroy'} ? 1 : 0 );
+
+    $self->{destroy} = ( $args->{destroy} ? 1 : 0 );
+
     $self->{flags} = $args->{flags} || 0;
     $self->{mode}  = $args->{mode}  || 0666 unless $args->{flags};
     $self->{size}  = $args->{size}  || 0;

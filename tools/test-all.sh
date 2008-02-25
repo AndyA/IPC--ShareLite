@@ -8,7 +8,7 @@ for perl in $perls
 do
     echo === Testing with $perl
     pv=`$perl -v | perl -ne 'if (/(\d+\.\d+(?:[._]\d+)?)/) { print $1; last }'`
-    [ -f Makefile ] && make distclean
+    [ -f Makefile ] && make distclean 2>&1 > /dev/null
 
     if {
         $perl Makefile.PL && make && make test

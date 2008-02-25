@@ -1,4 +1,6 @@
 Changes
+inc/Devel/CheckLib.pm
+inc/IO/CaptureOutput.pm
 lib/IPC/ShareLite.pm
 Makefile.PL
 MANIFEST

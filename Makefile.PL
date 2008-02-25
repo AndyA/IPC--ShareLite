@@ -1,9 +1,10 @@
 use 5.006001;
 
 use strict;
-# use warnings;
 
+use lib qw(inc);
 use Config;
+use Devel::CheckLib;
 use ExtUtils::MakeMaker;
 
 if ( $^O =~ /^(MS)?Win32$/ ) {
@@ -15,6 +16,9 @@ if ( $^O =~ /^VMS$/ ) {
     warn "IPC::ShareLite doesn't work on VMS.\nStopping.\n";
     exit 0;    # == NA test result
 }
+
+# Check that we have a C compiler
+check_lib_or_exit();
 
 my %mm_args = (
     ( MM->can( 'signature_target' ) ? ( SIGN => 1 ) : () ),

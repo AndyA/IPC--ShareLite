@@ -1,5 +1,8 @@
 Revision history for Perl extension IPC::ShareLite.
 
+0.12 2008-02-25
+    - Use Devel::CheckLib to verify that we have a C compiler.
+
 0.11 2008-02-25
     - Removed POD coverage test. Dynamic constants make it flaky.
     

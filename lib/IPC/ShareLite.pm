@@ -10,7 +10,7 @@ IPC::ShareLite - Lightweight interface to shared memory
 
 =head1 VERSION
 
-This document describes IPC::ShareLite version 0.12
+This document describes IPC::ShareLite version 0.13
 
 =cut
 
@@ -49,7 +49,7 @@ require AutoLoader;
 
 Exporter::export_ok_tags( 'all', 'lock', 'flock' );
 
-$VERSION = '0.12';
+$VERSION = '0.13';
 
 =head1 SYNOPSIS
 

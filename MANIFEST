@@ -6,5 +6,7 @@ README
 ShareLite.xs
 sharestuff.c
 sharestuff.h
+t/00-load.t
+t/pod.t
 t/sharelite.t
 typemap

@@ -295,6 +295,8 @@ constant( char *name, int arg ) {
 
 MODULE = IPC::ShareLite PACKAGE = IPC::ShareLite
 
+PROTOTYPES: DISABLE
+
 double
 constant( char *name, int arg)
 

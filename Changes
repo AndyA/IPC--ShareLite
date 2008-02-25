@@ -1,5 +1,8 @@
 Revision history for Perl extension IPC::ShareLite.
 
+0.11 2008-02-25
+    - Removed POD coverage test. Dynamic constants make it flaky.
+    
 0.10 2008-02-24
     - Use Perl's malloc wrappers
     - moved test into t/sharelite.t

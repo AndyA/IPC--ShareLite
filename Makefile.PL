@@ -53,7 +53,7 @@ sub metafile {
     my @exclude = qw( Devel::CheckLib IO::CaptureOutput );
     my $pad     = ' ' x 4;
     die "Can't parse Makefile fragment"
-      unless $lines[-2] =~ /^([^']*').*?('[^']*)$/;
+      unless $lines[-2] =~ /^([^"']*(["'])).*?(\2[^"']*)$/;
     splice @lines, -1, 0, map { "$1$_$2" } (
         'no_index:', "${pad}package:",
         map { "${pad}${pad}- $_" } @exclude

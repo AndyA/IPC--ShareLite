@@ -1,5 +1,9 @@
 Revision history for Perl extension IPC::ShareLite.
 
+0.13 2008-03-09
+    - Fixed patching of double quoted strings in Makefile. Affects Win32
+      and, probably, VMS.
+
 0.12 2008-02-25
     - Use Devel::CheckLib to verify that we have a C compiler.
 

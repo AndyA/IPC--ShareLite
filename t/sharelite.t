@@ -12,12 +12,12 @@ my $KEY = 192;
 
 # Test object construction
 ok my $share = IPC::ShareLite->new(
-    -key     => $KEY,
-    -create  => 'yes',
-    -destroy => 'yes',
-    -size    => 100
-  ),
-  'new';
+  -key     => $KEY,
+  -create  => 'yes',
+  -destroy => 'yes',
+  -size    => 100
+ ),
+ 'new';
 
 isa_ok $share, 'IPC::ShareLite';
 
@@ -49,23 +49,23 @@ is $share->version, 4, 'version inc';
 my $pid = fork;
 defined $pid or die $!;
 if ( $pid == 0 ) {
-    $share->destroy( 0 );
-    for ( 1 .. 1000 ) {
-        $share->lock( LOCK_EX() ) or die $!;
-        my $val = $share->fetch;
-        $share->store( ++$val ) or die $!;
-        $share->unlock or die $!;
-    }
-    exit;
+  $share->destroy( 0 );
+  for ( 1 .. 1000 ) {
+    $share->lock( LOCK_EX() ) or die $!;
+    my $val = $share->fetch;
+    $share->store( ++$val ) or die $!;
+    $share->unlock or die $!;
+  }
+  exit;
 }
 else {
-    for ( 1 .. 1000 ) {
-        $share->lock( LOCK_EX() ) or die $!;
-        my $val = $share->fetch;
-        $share->store( ++$val ) or die $!;
-        $share->unlock or die $!;
-    }
-    wait;
+  for ( 1 .. 1000 ) {
+    $share->lock( LOCK_EX() ) or die $!;
+    my $val = $share->fetch;
+    $share->store( ++$val ) or die $!;
+    $share->unlock or die $!;
+  }
+  wait;
 }
 
 is $share->fetch,   2000, 'lock';

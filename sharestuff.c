@@ -81,7 +81,8 @@ static struct sembuf sh_unlock[1] = {
  * returns -1 on error                                      *
  * returns 1 if LOCK_NB specified and operation would block */
 int
-sharelite_lock( Share * share, int flags ) {
+sharelite_lock( Share * share, int flags )
+{
 
     /* try to obtain exclusive lock by default */
     if ( !flags ) {
@@ -173,7 +174,8 @@ sharelite_lock( Share * share, int flags ) {
 }
 
 int
-sharelite_unlock( Share * share ) {
+sharelite_unlock( Share * share )
+{
     if ( share->lock & LOCK_EX ) {
         if ( RM_EX_LOCK( share->semid ) < 0 ) {
             return -1;
@@ -189,7 +191,8 @@ sharelite_unlock( Share * share ) {
 }
 
 Node *
-_add_segment( Share * share ) {
+_add_segment( Share * share )
+{
     Node *node;
     int flags;
 
@@ -246,7 +249,8 @@ _add_segment( Share * share ) {
 }
 
 int
-_detach_segments( Node * node ) {
+_detach_segments( Node * node )
+{
     Node *next_node;
 
     while ( node != NULL ) {
@@ -261,7 +265,8 @@ _detach_segments( Node * node ) {
 }
 
 int
-_remove_segments( int shmid ) {
+_remove_segments( int shmid )
+{
     int next_shmid;
     Header *shmaddr;
 
@@ -285,7 +290,8 @@ _remove_segments( int shmid ) {
 }
 
 int
-_invalidate_segments( Share * share ) {
+_invalidate_segments( Share * share )
+{
 
     if ( _detach_segments( share->head->next ) < 0 ) {
         return -1;
@@ -298,7 +304,8 @@ _invalidate_segments( Share * share ) {
 }
 
 int
-write_share( Share * share, char *data, int length ) {
+write_share( Share * share, char *data, int length )
+{
     char *shmaddr;
     int segments;
     int left;
@@ -390,7 +397,8 @@ write_share( Share * share, char *data, int length ) {
 }
 
 int
-read_share( Share * share, char **data ) {
+read_share( Share * share, char **data )
+{
     char *shmaddr;
     char *pos;
     Node *node;
@@ -447,7 +455,8 @@ read_share( Share * share, char **data ) {
 }
 
 Share *
-new_share( key_t key, int segment_size, int flags ) {
+new_share( key_t key, int segment_size, int flags )
+{
     Share *share;
     Node *node;
     int semid;
@@ -536,12 +545,14 @@ new_share( key_t key, int segment_size, int flags ) {
 }
 
 unsigned int
-sharelite_version( Share * share ) {
+sharelite_version( Share * share )
+{
     return share->head->shmaddr->version;
 }
 
 int
-destroy_share( Share * share, int rmid ) {
+destroy_share( Share * share, int rmid )
+{
     int semid;
     SEMUN semctl_arg;
 
@@ -582,7 +593,8 @@ destroy_share( Share * share, int rmid ) {
 }
 
 int
-sharelite_num_segments( Share * share ) {
+sharelite_num_segments( Share * share )
+{
     int count = 0;
     int shmid;
     Header *shmaddr;
@@ -605,7 +617,8 @@ sharelite_num_segments( Share * share ) {
 }
 
 void
-_dump_list( Share * share ) {
+_dump_list( Share * share )
+{
     Node *node;
 
     node = share->head;

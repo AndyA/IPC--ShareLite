@@ -15,12 +15,12 @@ This document describes IPC::ShareLite version 0.14
 =cut
 
 use vars qw(
-  $VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $AUTOLOAD
+ $VERSION @ISA @EXPORT @EXPORT_OK %EXPORT_TAGS $AUTOLOAD
 );
 
 use subs qw(
-  IPC_CREAT IPC_EXCL IPC_RMID IPC_STAT IPC_PRIVATE GETVAL SETVAL GETALL
-  SEM_UNDO LOCK_EX LOCK_SH LOCK_UN LOCK_NB
+ IPC_CREAT IPC_EXCL IPC_RMID IPC_STAT IPC_PRIVATE GETVAL SETVAL GETALL
+ SEM_UNDO LOCK_EX LOCK_SH LOCK_UN LOCK_NB
 );
 
 require Exporter;
@@ -32,19 +32,19 @@ require AutoLoader;
 @EXPORT = qw( );
 
 @EXPORT_OK = qw(
-  IPC_CREAT IPC_EXCL IPC_RMID IPC_STATE IPC_PRIVATE GETVAL SETVAL GETALL
-  SEM_UNDO LOCK_EX LOCK_SH LOCK_UN LOCK_NB
+ IPC_CREAT IPC_EXCL IPC_RMID IPC_STATE IPC_PRIVATE GETVAL SETVAL GETALL
+ SEM_UNDO LOCK_EX LOCK_SH LOCK_UN LOCK_NB
 );
 
 %EXPORT_TAGS = (
-    all => [
-        qw(
-          IPC_CREAT IPC_EXCL IPC_RMID IPC_PRIVATE LOCK_EX LOCK_SH LOCK_UN
-          LOCK_NB
-          )
-    ],
-    lock  => [qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB )],
-    flock => [qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB )],
+  all => [
+    qw(
+     IPC_CREAT IPC_EXCL IPC_RMID IPC_PRIVATE LOCK_EX LOCK_SH LOCK_UN
+     LOCK_NB
+     )
+  ],
+  lock  => [qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB )],
+  flock => [qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB )],
 );
 
 Exporter::export_ok_tags( 'all', 'lock', 'flock' );
@@ -164,85 +164,84 @@ The constructor returns the undefined value on error.
 =cut
 
 sub new {
-    my $class = shift;
-    my $self = bless {}, ref $class || $class;
+  my $class = shift;
+  my $self = bless {}, ref $class || $class;
 
-    my $args = $class->_rearrange_args(
-        [
-            qw( key create destroy exclusive mode
-              flags size glue )
-        ],
-        \@_
-    );
+  my $args = $class->_rearrange_args(
+    [
+      qw( key create destroy exclusive mode
+       flags size glue )
+    ],
+    \@_
+  );
 
-    $self->_initialize( $args ) or return undef;
+  $self->_initialize( $args ) or return undef;
 
-    return $self;
+  return $self;
 }
 
 sub _initialize {
-    my $self = shift;
-    my $args = shift;
+  my $self = shift;
+  my $args = shift;
 
-    for ( qw( create exclusive destroy ) ) {
-        $args->{$_} = 0
-          if defined $args->{$_} and lc $args->{$_} eq 'no';
-    }
+  for ( qw( create exclusive destroy ) ) {
+    $args->{$_} = 0
+     if defined $args->{$_} and lc $args->{$_} eq 'no';
+  }
 
-    # Allow glue as a synonym for key
-    $self->{key} = $args->{key} || $args->{glue} || IPC_PRIVATE;
+  # Allow glue as a synonym for key
+  $self->{key} = $args->{key} || $args->{glue} || IPC_PRIVATE;
 
-    # Allow a four character string as the key
-    $self->{key} = unpack( 'i', pack( 'A4', $self->{key} ) )
-      unless ( $self->{key} =~ /^\d+$/ );
+  # Allow a four character string as the key
+  $self->{key} = unpack( 'i', pack( 'A4', $self->{key} ) )
+   unless ( $self->{key} =~ /^\d+$/ );
 
-    $self->{create} = ( $args->{create} ? IPC_CREAT : 0 );
+  $self->{create} = ( $args->{create} ? IPC_CREAT : 0 );
 
-    $self->{exclusive} = (
-        $args->{exclusive}
-        ? IPC_EXCL | IPC_CREAT
-        : 0
-    );
+  $self->{exclusive} = (
+    $args->{exclusive}
+    ? IPC_EXCL | IPC_CREAT
+    : 0
+  );
 
-    $self->{destroy} = ( $args->{destroy} ? 1 : 0 );
+  $self->{destroy} = ( $args->{destroy} ? 1 : 0 );
 
-    $self->{flags} = $args->{flags} || 0;
-    $self->{mode}  = $args->{mode}  || 0666 unless $args->{flags};
-    $self->{size}  = $args->{size}  || 0;
+  $self->{flags} = $args->{flags} || 0;
+  $self->{mode}  = $args->{mode}  || 0666 unless $args->{flags};
+  $self->{size}  = $args->{size}  || 0;
 
-    $self->{flags}
-      = $self->{flags} | $self->{exclusive} | $self->{create}
-      | $self->{mode};
+  $self->{flags} = $self->{flags} | $self->{exclusive} | $self->{create}
+   | $self->{mode};
 
-    $self->{share}
-      = new_share( $self->{key}, $self->{size}, $self->{flags} )
-      or return undef;
+  $self->{share}
+   = new_share( $self->{key}, $self->{size}, $self->{flags} )
+   or return undef;
 
-    return 1;
+  return 1;
 }
 
 sub _rearrange_args {
-    my ( $self, $names, $params ) = @_;
-    my ( %hash, %names );
+  my ( $self, $names, $params ) = @_;
+  my ( %hash, %names );
 
-    return \%hash unless ( @$params );
+  return \%hash unless ( @$params );
 
-    unless ( $params->[0] =~ /^-/ ) {
-        croak "unexpected number of parameters"
-          unless ( @$names == @$params );
-        $hash{@$names} = @$params;
-        return \%hash;
-    }
-
-    %names = map { $_ => 1 } @$names;
-
-    while ( @$params ) {
-        my $param = lc substr( shift @$params, 1 );
-        exists $names{$param} or croak "unexpected parameter '-$param'";
-        $hash{$param} = shift @$params;
-    }
-
+  unless ( $params->[0] =~ /^-/ ) {
+    croak "unexpected number of parameters"
+     unless ( @$names == @$params );
+    $hash{@$names} = @$params;
     return \%hash;
+  }
+
+  %names = map { $_ => 1 } @$names;
+
+  while ( @$params ) {
+    my $param = lc substr( shift @$params, 1 );
+    exists $names{$param} or croak "unexpected parameter '-$param'";
+    $hash{$param} = shift @$params;
+  }
+
+  return \%hash;
 }
 
 =head2 C<< store( $scalar ) >>
@@ -271,12 +270,12 @@ the L<Storable> module yourself. For example:
 =cut
 
 sub store {
-    my $self = shift;
+  my $self = shift;
 
-    if ( write_share( $self->{share}, $_[0], length $_[0] ) < 0 ) {
-        croak "IPC::ShareLite store() error: $!";
-    }
-    return 1;
+  if ( write_share( $self->{share}, $_[0], length $_[0] ) < 0 ) {
+    croak "IPC::ShareLite store() error: $!";
+  }
+  return 1;
 }
 
 =head2 C<< fetch >>
@@ -290,11 +289,11 @@ The method raises an exception on error.
 =cut
 
 sub fetch {
-    my $self = shift;
+  my $self = shift;
 
-    my $str = read_share( $self->{share} );
-    defined $str or croak "IPC::ShareLite fetch() error: $!";
-    return $str;
+  my $str = read_share( $self->{share} );
+  defined $str or croak "IPC::ShareLite fetch() error: $!";
+  return $str;
 }
 
 =head2 C<< lock( $type ) >>
@@ -347,12 +346,12 @@ Or, just use the flock constants available in the Fcntl module.
 =cut
 
 sub lock {
-    my $self = shift;
+  my $self = shift;
 
-    my $response = sharelite_lock( $self->{share}, shift() );
-    return undef if ( $response == -1 );
-    return 0 if ( $response == 1 );    # operation failed due to LOCK_NB
-    return 1;
+  my $response = sharelite_lock( $self->{share}, shift() );
+  return undef if ( $response == -1 );
+  return 0 if ( $response == 1 );    # operation failed due to LOCK_NB
+  return 1;
 }
 
 =head2 C<< unlock >>
@@ -366,10 +365,10 @@ The method returns true on success and undef on error.
 =cut
 
 sub unlock {
-    my $self = shift;
+  my $self = shift;
 
-    return undef if ( sharelite_unlock( $self->{share} ) < 0 );
-    return 1;
+  return undef if ( sharelite_unlock( $self->{share} ) < 0 );
+  return 1;
 }
 
 # DEPRECATED -- Use lock() and unlock() instead.
@@ -451,11 +450,11 @@ boundary.
 =cut
 
 sub num_segments {
-    my $self = shift;
+  my $self = shift;
 
-    my $count = sharelite_num_segments( $self->{share} );
-    return undef if $count < 0;
-    return $count;
+  my $count = sharelite_num_segments( $self->{share} );
+  return undef if $count < 0;
+  return $count;
 }
 
 =head2 C<< destroy >>
@@ -465,38 +464,37 @@ Get or set the share's destroy flag.
 =cut
 
 sub destroy {
-    my $self = shift;
-    $self->{destroy} = shift if @_;
-    return $self->{destroy};
+  my $self = shift;
+  $self->{destroy} = shift if @_;
+  return $self->{destroy};
 }
 
 sub DESTROY {
-    my $self = shift;
+  my $self = shift;
 
-    destroy_share( $self->{share}, $self->{destroy} )
-      if $self->{share};
+  destroy_share( $self->{share}, $self->{destroy} )
+   if $self->{share};
 }
 
 sub AUTOLOAD {
-    # This AUTOLOAD is used to 'autoload' constants from the constant()
-    # XS function.  If a constant is not found then control is passed
-    # to the AUTOLOAD in AutoLoader.
+  # This AUTOLOAD is used to 'autoload' constants from the constant()
+  # XS function.  If a constant is not found then control is passed
+  # to the AUTOLOAD in AutoLoader.
 
-    my $constname;
-    ( $constname = $AUTOLOAD ) =~ s/.*:://;
-    my $val = constant( $constname, @_ ? $_[0] : 0 );
-    if ( $! != 0 ) {
-        if ( $! =~ /Invalid/ ) {
-            $AutoLoader::AUTOLOAD = $AUTOLOAD;
-            goto &AutoLoader::AUTOLOAD;
-        }
-        else {
-            croak
-              "Your vendor has not defined ShareLite macro $constname";
-        }
+  my $constname;
+  ( $constname = $AUTOLOAD ) =~ s/.*:://;
+  my $val = constant( $constname, @_ ? $_[0] : 0 );
+  if ( $! != 0 ) {
+    if ( $! =~ /Invalid/ ) {
+      $AutoLoader::AUTOLOAD = $AUTOLOAD;
+      goto &AutoLoader::AUTOLOAD;
     }
-    eval "sub $AUTOLOAD { $val }";
-    goto &$AUTOLOAD;
+    else {
+      croak "Your vendor has not defined ShareLite macro $constname";
+    }
+  }
+  eval "sub $AUTOLOAD { $val }";
+  goto &$AUTOLOAD;
 }
 
 bootstrap IPC::ShareLite $VERSION;

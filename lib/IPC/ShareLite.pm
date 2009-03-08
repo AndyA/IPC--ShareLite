@@ -180,6 +180,12 @@ sub new {
   return $self;
 }
 
+sub _8bit_clean {
+  my ( $self, $str ) = @_;
+  croak "$str is not 8-bit clean"
+   if grep { $_ > 255 } unpack 'C*', $str;
+}
+
 sub _initialize {
   my $self = shift;
   my $args = shift;
@@ -193,8 +199,12 @@ sub _initialize {
   $self->{key} = $args->{key} || $args->{glue} || IPC_PRIVATE;
 
   # Allow a four character string as the key
-  $self->{key} = unpack( 'i', pack( 'A4', $self->{key} ) )
-   unless ( $self->{key} =~ /^\d+$/ );
+  unless ( $self->{key} =~ /^\d+$/ ) {
+    croak "Key must be a number or four character string"
+     if length $self->{key} > 4;
+    $self->_8bit_clean( $self->{key} );
+    $self->{key} = unpack( 'i', pack( 'A4', $self->{key} ) );
+  }
 
   $self->{create} = ( $args->{create} ? IPC_CREAT : 0 );
 

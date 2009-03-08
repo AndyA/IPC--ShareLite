@@ -1,3 +1,5 @@
+IPC::ShareLite 0.15
+
 DESCRIPTION
 
   IPC::ShareLite provides a simple interface to shared memory, allowing

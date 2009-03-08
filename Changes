@@ -1,5 +1,8 @@
 Revision history for Perl extension IPC::ShareLite.
 
+0.14 2009-03-07
+    - Croak if 4 char key string is not 8-bit clean. See #33672.
+
 0.13 2008-03-09
     - Fixed patching of double quoted strings in Makefile. Affects Win32
       and, probably, VMS.

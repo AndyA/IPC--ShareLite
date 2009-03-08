@@ -3,68 +3,70 @@ package IO::CaptureOutput;
 use strict;
 use vars qw/$VERSION @ISA @EXPORT_OK %EXPORT_TAGS/;
 use Exporter;
-@ISA = 'Exporter';
-@EXPORT_OK = qw/capture capture_exec qxx capture_exec_combined qxy/;
-%EXPORT_TAGS = (all => \@EXPORT_OK);
-$VERSION = '1.0801';
+@ISA         = 'Exporter';
+@EXPORT_OK   = qw/capture capture_exec qxx capture_exec_combined qxy/;
+%EXPORT_TAGS = ( all => \@EXPORT_OK );
+$VERSION     = '1.0801';
 
-sub capture (&@) { ## no critic
-    my ($code, $output, $error, $output_file, $error_file) = @_;
+sub capture (&@) {    ## no critic
+  my ( $code, $output, $error, $output_file, $error_file ) = @_;
 
-    for ($output, $error) {
-        $_ = \do { my $s; $s = ''} unless ref $_;
-        $$_ = '' if $_ != \undef && !defined($$_);
-    }
+  for ( $output, $error ) {
+    $_ = \do { my $s; $s = '' } unless ref $_;
+    $$_ = '' if $_ != \undef && !defined( $$_ );
+  }
 
-    # don't merge if both undef -- someone might still want to capture
-    # them separately in temp files
-    my $should_merge = defined $error && defined $output && $output == $error;
+  # don't merge if both undef -- someone might still want to capture
+  # them separately in temp files
+  my $should_merge
+   = defined $error && defined $output && $output == $error;
 
-    my ($capture_out, $capture_err);
-    if ( $output != \undef ) { 
-        $capture_out = IO::CaptureOutput::_proxy->new(
-            'STDOUT', $output, undef, $output_file
-        );
-    }
-    if ( $error != \undef ) { 
-        my $capture_err = IO::CaptureOutput::_proxy->new(
-            'STDERR', $error, ($should_merge ? 'STDOUT' : undef), $error_file
-        );
-    }
-    &$code();
+  my ( $capture_out, $capture_err );
+  if ( $output != \undef ) {
+    $capture_out
+     = IO::CaptureOutput::_proxy->new( 'STDOUT', $output, undef,
+      $output_file );
+  }
+  if ( $error != \undef ) {
+    my $capture_err = IO::CaptureOutput::_proxy->new( 'STDERR', $error,
+      ( $should_merge ? 'STDOUT' : undef ), $error_file );
+  }
+  &$code();
 }
 
 sub capture_exec {
-    my @args = @_;
-    my ($output, $error);
-    capture sub { system _shell_quote(@args) }, \$output, \$error;
-    return wantarray ? ($output, $error) : $output;
+  my @args = @_;
+  my ( $output, $error );
+  capture sub { system _shell_quote( @args ) }, \$output, \$error;
+  return wantarray ? ( $output, $error ) : $output;
 }
 
 *qxx = \&capture_exec;
 
 sub capture_exec_combined {
-    my @args = @_;
-    my $output;
-    capture sub { system _shell_quote(@args) }, \$output, \$output;
-    return $output;
+  my @args = @_;
+  my $output;
+  capture sub { system _shell_quote( @args ) }, \$output, \$output;
+  return $output;
 }
 
 *qxy = \&capture_exec_combined;
 
 # extra quoting required on Win32 systems
-*_shell_quote = ($^O =~ /MSWin32/) ? \&_shell_quote_win32 : sub {@_};
+*_shell_quote
+ = ( $^O =~ /MSWin32/ ) ? \&_shell_quote_win32 : sub { @_ };
+
 sub _shell_quote_win32 {
-    my @args;
-    for (@_) {
-        if (/[ \"]/) { # TODO: check if ^ requires escaping
-            (my $escaped = $_) =~ s/([\"])/\\$1/g;
-            push @args, '"' . $escaped . '"';
-            next;
-        }
-        push @args, $_
+  my @args;
+  for ( @_ ) {
+    if ( /[ \"]/ ) {    # TODO: check if ^ requires escaping
+      ( my $escaped = $_ ) =~ s/([\"])/\\$1/g;
+      push @args, '"' . $escaped . '"';
+      next;
     }
-    return @args;
+    push @args, $_;
+  }
+  return @args;
 }
 
 # Captures everything printed to a filehandle for the lifetime of the object
@@ -75,80 +77,88 @@ use File::Basename qw/basename/;
 use Symbol qw/gensym qualify qualify_to_ref/;
 use Carp;
 
-sub _is_wperl { $^O eq 'MSWin32' && basename($^X) eq 'wperl.exe' }
+sub _is_wperl { $^O eq 'MSWin32' && basename( $^X ) eq 'wperl.exe' }
 
 sub new {
-    my $class = shift;
-    my ($fh, $capture, $merge_fh, $capture_file) = @_;
-    $fh       = qualify($fh);         # e.g. main::STDOUT
-    my $fhref = qualify_to_ref($fh);  # e.g. \*STDOUT
+  my $class = shift;
+  my ( $fh, $capture, $merge_fh, $capture_file ) = @_;
+  $fh = qualify( $fh );    # e.g. main::STDOUT
+  my $fhref = qualify_to_ref( $fh );    # e.g. \*STDOUT
 
-    # Duplicate the filehandle
-    my $saved;
-    {
-        no strict 'refs'; ## no critic - needed for 5.005
-        if ( defined fileno($fh) && ! _is_wperl() ) {
-            $saved = gensym;
-            open $saved, ">&$fh" or croak "Can't redirect <$fh> - $!";
-        }
+  # Duplicate the filehandle
+  my $saved;
+  {
+    no strict 'refs';                   ## no critic - needed for 5.005
+    if ( defined fileno( $fh ) && !_is_wperl() ) {
+      $saved = gensym;
+      open $saved, ">&$fh" or croak "Can't redirect <$fh> - $!";
     }
+  }
 
-    # Create replacement filehandle if not merging
-    my ($newio, $newio_file);
-    if ( ! $merge_fh ) {
-        $newio = gensym;
-        if ($capture_file) {
-            $newio_file = $capture_file;
-        } else {
-            (undef, $newio_file) = tempfile;
-        }
-        open $newio, "+>$newio_file" or croak "Can't write temp file for $fh - $!";
+  # Create replacement filehandle if not merging
+  my ( $newio, $newio_file );
+  if ( !$merge_fh ) {
+    $newio = gensym;
+    if ( $capture_file ) {
+      $newio_file = $capture_file;
     }
     else {
-        $newio = qualify($merge_fh);
+      ( undef, $newio_file ) = tempfile;
     }
+    open $newio, "+>$newio_file"
+     or croak "Can't write temp file for $fh - $!";
+  }
+  else {
+    $newio = qualify( $merge_fh );
+  }
 
-    # Redirect (or merge)
-    {
-        no strict 'refs'; ## no critic -- needed for 5.005
-        open $fhref, ">&".fileno($newio) or croak "Can't redirect $fh - $!";
-    }
+  # Redirect (or merge)
+  {
+    no strict 'refs';    ## no critic -- needed for 5.005
+    open $fhref, ">&" . fileno( $newio )
+     or croak "Can't redirect $fh - $!";
+  }
 
-    bless [$$, $fh, $saved, $capture, $newio, $newio_file, $capture_file], $class;
+  bless [ $$, $fh, $saved, $capture, $newio, $newio_file,
+    $capture_file ],
+   $class;
 }
 
 sub DESTROY {
-    my $self = shift;
+  my $self = shift;
 
-    my ($pid, $fh, $saved) = @{$self}[0..2];
-    return unless $pid eq $$; # only cleanup in the process that is capturing
+  my ( $pid, $fh, $saved ) = @{$self}[ 0 .. 2 ];
+  return
+   unless $pid eq $$;    # only cleanup in the process that is capturing
 
-    # restore the original filehandle
-    my $fh_ref = Symbol::qualify_to_ref($fh);
-    select((select ($fh_ref), $|=1)[0]);
-    if (defined $saved) {
-        open $fh_ref, ">&". fileno($saved) or croak "Can't restore $fh - $!";
-    }
-    else {
-        close $fh_ref;
-    }
+  # restore the original filehandle
+  my $fh_ref = Symbol::qualify_to_ref( $fh );
+  select( ( select( $fh_ref ), $| = 1 )[0] );
+  if ( defined $saved ) {
+    open $fh_ref, ">&" . fileno( $saved )
+     or croak "Can't restore $fh - $!";
+  }
+  else {
+    close $fh_ref;
+  }
 
-    # transfer captured data to the scalar reference if we didn't merge
-    my ($capture, $newio, $newio_file) = @{$self}[3..5];
-    if ($newio_file) {
-        # some versions of perl complain about reading from fd 1 or 2
-        # which could happen if STDOUT and STDERR were closed when $newio
-        # was opened, so we just squelch warnings here and continue
-        local $^W; 
-        seek $newio, 0, 0;
-        $$capture = do {local $/; <$newio>};
-        close $newio;
-    }
+  # transfer captured data to the scalar reference if we didn't merge
+  my ( $capture, $newio, $newio_file ) = @{$self}[ 3 .. 5 ];
+  if ( $newio_file ) {
+    # some versions of perl complain about reading from fd 1 or 2
+    # which could happen if STDOUT and STDERR were closed when $newio
+    # was opened, so we just squelch warnings here and continue
+    local $^W;
+    seek $newio, 0, 0;
+    $$capture = do { local $/; <$newio> };
+    close $newio;
+  }
 
-    # Cleanup
-    return unless defined $newio_file && -e $newio_file;
-    return if $self->[6]; # the "temp" file was explicitly named
-    unlink $newio_file or carp "Couldn't remove temp file '$newio_file' - $!";
+  # Cleanup
+  return unless defined $newio_file && -e $newio_file;
+  return if $self->[6];    # the "temp" file was explicitly named
+  unlink $newio_file
+   or carp "Couldn't remove temp file '$newio_file' - $!";
 }
 
 1;

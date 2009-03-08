@@ -26,10 +26,10 @@
  * segments.  length is unused, except for the first    *
  * segment.                                             */
 typedef struct {
-    key_t next_shmid;
-    int length;
-    unsigned int shm_state;
-    unsigned int version;
+  key_t next_shmid;
+  int length;
+  unsigned int shm_state;
+  unsigned int version;
 } Header;
 
 /* Structure for the per-process segment list.  This list    *
@@ -41,25 +41,25 @@ typedef struct {
  * linked-list -- nodes are added on to this list on an      *
  * as-needed basis                                           */
 typedef struct node {
-    int shmid;
-    Header *shmaddr;
-    struct node *next;
+  int shmid;
+  Header *shmaddr;
+  struct node *next;
 } Node;
 
 /* The primary structure for this library.  We pass this back *
  * and forth to perl                                          */
 typedef struct {
-    key_t key;
-    key_t next_key;
-    int segment_size;
-    int data_size;
-    int flags;
-    int semid;
-    short lock;
-    Node *head;
-    Node *tail;
-    unsigned int shm_state;
-    unsigned int version;
+  key_t key;
+  key_t next_key;
+  int segment_size;
+  int data_size;
+  int flags;
+  int semid;
+  short lock;
+  Node *head;
+  Node *tail;
+  unsigned int shm_state;
+  unsigned int version;
 } Share;
 
 /* prototypes */

@@ -26,3 +26,7 @@
 ^try[.]store$
 ^TODO$
 \.swp$
+
+\.bs$
+\.o$
+^ShareLite\.c$

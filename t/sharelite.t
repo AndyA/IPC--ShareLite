@@ -1,6 +1,10 @@
 use strict;
 use warnings;
 use Test::More tests => 14;
+use File::Spec;
+
+my $log_file = $ENV{IPC_SHARELITE_LOG}
+ = File::Spec->catfile( 't', "sl-$$.log" );
 
 use_ok 'IPC::ShareLite', qw( LOCK_EX LOCK_SH LOCK_UN LOCK_NB );
 
@@ -70,4 +74,15 @@ else {
 
 is $share->fetch,   2000, 'lock';
 is $share->version, 2004, 'version inc';
+
+if ( -f $log_file ) {
+  if ( -s $log_file ) {
+    open my $lh, '<', $log_file or die "Can't read $log_file ($!)\n";
+    while ( <$lh> ) {
+      chomp;
+      diag $_;
+    }
+  }
+  unlink $log_file;
+}
 

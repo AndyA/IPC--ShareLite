@@ -27,12 +27,15 @@ my %mm_args = (
   VERSION_FROM  => 'lib/IPC/ShareLite.pm',
   ABSTRACT_FROM => 'lib/IPC/ShareLite.pm',
   PL_FILES      => {},
-  PREREQ_PM     => { 'Test::More' => 0, },
-  LIBS          => [''],
-  DEFINE        => '',
-  INC           => '',
-  OBJECT        => 'sharestuff.o ShareLite.o',
-  dist          => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+  PREREQ_PM     => {
+    'Test::More' => 0,
+    'File::Spec' => 0,
+  },
+  LIBS   => [''],
+  DEFINE => '',
+  INC    => '',
+  OBJECT => 'sharestuff.o ShareLite.o',
+  dist   => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
   clean => { FILES => 'IPC-ShareLite-*' },
 );
 

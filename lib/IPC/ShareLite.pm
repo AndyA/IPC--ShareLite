@@ -159,7 +159,7 @@ C<$size> specifies the shared memory segment size, in bytes. The default
 size is 65,536 bytes, which is fairly portable. Linux, as an example,
 supports segment sizes of 4 megabytes.
 
-The constructor returns the undefined value on error.
+The constructor croaks on error.
 
 =cut
 
@@ -175,7 +175,7 @@ sub new {
     \@_
   );
 
-  $self->_initialize( $args ) or return undef;
+  $self->_initialize( $args );
 
   return $self;
 }
@@ -225,7 +225,7 @@ sub _initialize {
 
   $self->{share}
    = new_share( $self->{key}, $self->{size}, $self->{flags} )
-   or return undef;
+   or croak "Failed to create share";
 
   return 1;
 }

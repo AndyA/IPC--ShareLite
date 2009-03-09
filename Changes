@@ -1,5 +1,8 @@
 Revision history for Perl extension IPC::ShareLite.
 
+0.15 2009-03-09
+    - Add some logging to help diagnose smoke failures.
+
 0.14 2009-03-07
     - Croak if 4 char key string is not 8-bit clean. See #33672.
 

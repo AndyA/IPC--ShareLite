@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -74,6 +75,50 @@ static struct sembuf sh_lock_nb[2] = {
 static struct sembuf sh_unlock[1] = {
   {1, -1, ( SEM_UNDO | IPC_NOWAIT )}    /* remove shared read lock */
 };
+
+FILE *log_fh = NULL;
+#define LOG_ARGS const char *file, int line, const char *fmt, ...
+#define LOG0(fmt) sharelite_log(__FILE__, __LINE__, fmt)
+#define LOG1(fmt, a1) sharelite_log(__FILE__, __LINE__, fmt, a1)
+#define LOG2(fmt, a1, a2) sharelite_log(__FILE__, __LINE__, fmt, a1, a2)
+#define LOG3(fmt, a1, a2, a3) sharelite_log(__FILE__, __LINE__, fmt, a1, a2, a3)
+
+static void sharelite_log_active( LOG_ARGS );
+static void sharelite_log_nop( LOG_ARGS );
+
+static void ( *sharelite_log ) ( LOG_ARGS ) = sharelite_log_active;
+
+static void
+sharelite_log_nop( LOG_ARGS ) {
+}
+
+static void
+sharelite_log_active( LOG_ARGS ) {
+  if ( NULL == log_fh ) {
+    const char *log_file = getenv( "IPC_SHARELITE_LOG" );
+    if ( NULL == log_file
+         || ( log_fh = fopen( log_file, "a" ), NULL == log_fh ) ) {
+      sharelite_log = sharelite_log_nop;
+      return;
+    }
+  }
+  {
+    struct timeval now;
+    char timebuf[40];
+    va_list ap;
+
+    gettimeofday( &now, NULL );
+    strftime( timebuf, sizeof( timebuf ), "%Y/%m/%d %H:%M:%S",
+              gmtime( &now.tv_sec ) );
+    fprintf( log_fh, "%s.%06lu %s, %d : ", timebuf,
+             ( unsigned long ) now.tv_usec, file, line );
+    va_start( ap, fmt );
+    vfprintf( log_fh, fmt, ap );
+    va_end( ap );
+    fprintf( log_fh, "\n" );
+    fflush( log_fh );
+  }
+}
 
 /* USER INITIATED LOCK */
 
@@ -455,6 +500,7 @@ new_share( key_t key, int segment_size, int flags ) {
 
 again:
   if ( ( semid = semget( key, 3, flags ) ) < 0 ) {
+    LOG1( "semget failed (%d)", errno );
     return NULL;
   }
 
@@ -465,6 +511,7 @@ again:
     if ( errno == EINVAL ) {
       goto again;
     }
+    LOG1( "GET_EX_LOCK failed (%d)", errno );
     return NULL;
   }
 
@@ -476,12 +523,14 @@ again:
   Newxz( node, 1, Node );
 
   if ( ( node->shmid = shmget( key, segment_size, flags ) ) < 0 ) {
+    LOG1( "shmget failed (%d)", errno );
     return NULL;
   }
 
   if ( ( node->shmaddr =
          ( Header * ) shmat( node->shmid, ( char * ) 0,
                              0 ) ) == ( Header * ) - 1 ) {
+    LOG1( "shmat failed (%d)", errno );
     return NULL;
   }
 
@@ -500,12 +549,14 @@ again:
   /* is this a newly created segment?  if so, initialize it */
   if ( ( semun_arg.val =
          semctl( share->semid, 0, GETVAL, semun_arg ) ) < 0 ) {
+    LOG1( "shmctl failed (%d)", errno );
     return NULL;
   }
 
   if ( semun_arg.val == 0 ) {
     semun_arg.val = 1;
     if ( semctl( share->semid, 0, SETVAL, semun_arg ) < 0 ) {
+      LOG1( "shmctl failed (%d)", errno );
       return NULL;
     }
     share->head->shmaddr->length = 0;
@@ -521,6 +572,7 @@ again:
    * with what the user requested, since shmget() calls will      *
    * succeed if the requested size <= the existing size           */
   if ( shmctl( share->head->shmid, IPC_STAT, &shmctl_arg ) < 0 ) {
+    LOG1( "shmctl failed (%d)", errno );
     return NULL;
   }
 
@@ -528,6 +580,7 @@ again:
   share->data_size = share->segment_size - sizeof( Header );
 
   if ( RM_EX_LOCK( semid ) < 0 ) {
+    LOG1( "RM_EX_LOCK failed (%d)", errno );
     return NULL;
   }
 

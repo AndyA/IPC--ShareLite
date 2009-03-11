@@ -2,13 +2,12 @@
 
 use strict;
 use warnings;
-use utf8;
 use Test::More tests => 3;
 use IPC::ShareLite;
 
 my $share1 = eval {
   IPC::ShareLite->new(
-    '-key'     => "AAAĄ",    # in hex it's 41 41 41 c4 84
+    '-key'     => "AAA\x{104}",    # in hex it's 41 41 41 c4 84
     '-create'  => 'yes',
     '-destroy' => 'no',
   );
@@ -17,7 +16,7 @@ like $@, qr/not 8-bit clean/, '8-bit clean error (1)';
 
 my $share2 = eval {
   IPC::ShareLite->new(
-    '-key'     => "AAAĘ",    # in hex it's 41 41 41 c4 98
+    '-key'     => "AAA\x{118}",    # in hex it's 41 41 41 c4 98
     '-create'  => 'yes',
     '-destroy' => 'no',
   );

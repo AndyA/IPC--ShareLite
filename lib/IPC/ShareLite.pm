@@ -183,7 +183,7 @@ sub new {
 sub _8bit_clean {
   my ( $self, $str ) = @_;
   croak "$str is not 8-bit clean"
-   if grep { $_ > 255 } unpack 'C*', $str;
+   if grep { $_ > 255 } map ord, split //, $str;
 }
 
 sub _initialize {
